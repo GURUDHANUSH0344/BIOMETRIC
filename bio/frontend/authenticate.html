@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Location Verification & Biometric Auth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/" class="brand">
+      <div class="brand-icon">⚡</div>
+      <span>Location Verification</span>
+    </a>
+    <div id="topUserBadge" class="user-badge">Checking...</div>
+  </header>
+
+  <main class="app-container">
+    <div id="alertContainer"></div>
+
+    <!-- Location Status Banner & Details Card -->
+    <div class="card location-status-card">
+      <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">LOCATION VERIFICATION STATUS</div>
+      
+      <div id="statusIndicator" class="status-indicator loading">
+        <span class="spinner"></span>
+        <span>GETTING YOUR CURRENT LOCATION...</span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; text-align: left; font-size: 0.88rem; background: rgba(0,0,0,0.25); padding: 14px; border-radius: var(--radius-md);">
+        <div>
+          <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">CURRENT LATITUDE</span>
+          <strong id="valLatitude">--.------</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">CURRENT LONGITUDE</span>
+          <strong id="valLongitude">--.------</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">GPS ACCURACY</span>
+          <strong id="valAccuracy">-- meters</strong>
+        </div>
+        <div>
+          <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">DISTANCE TO CENTER</span>
+          <strong id="valDistance" style="color: var(--primary);">-- meters</strong>
+        </div>
+        <div style="grid-column: span 2; border-top: 1px dashed rgba(255,255,255,0.1); padding-top: 8px;">
+          <span style="color: var(--text-dim); display: block; font-size: 0.75rem;">REQUIRED MAXIMUM RADIUS</span>
+          <strong id="valRequiredRadius">100 meters</strong>
+        </div>
+      </div>
+
+      <button id="btnRefreshGeo" class="btn btn-secondary" style="margin-top: 14px; padding: 8px;">
+        🔄 Refresh GPS Position
+      </button>
+    </div>
+
+    <!-- Biometric Touch Button Card -->
+    <div class="card" style="text-align: center;">
+      <div style="font-size: 0.95rem; font-weight: 600; margin-bottom: 4px;">BIOMETRIC AUTHENTICATION</div>
+      <div id="biometricInstruction" style="font-size: 0.85rem; color: var(--text-muted);">
+        Location must be verified inside authorized area to enable biometric trigger.
+      </div>
+
+      <button id="btnBiometricTrigger" class="biometric-touch-target disabled" disabled>
+        <span style="font-size: 2.2rem; margin-bottom: 4px;">☝️</span>
+        <span style="font-size: 0.75rem; font-weight: 700; text-align: center; line-height: 1.2;">AUTHENTICATE<br>WITH BIOMETRIC</span>
+      </button>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="/authenticate.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+
+      <span>Authenticate</span>
+    </a>
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/history.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7 7.07 7.07 0 01-6-3.44l-1.42 1.42A8.95 8.95 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/geo.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    let currentPosData = null;
+    let currentUserData = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Check session
+      try {
+        const res = await API.getCurrentUser();
+        if (res.authenticated && res.user) {
+          currentUserData = res.user;
+        }
+      } catch (e) {}
+
+      // Initial GPS detection
+      await checkUserLocation();
+
+      document.getElementById('btnRefreshGeo').addEventListener('click', checkUserLocation);
+      document.getElementById('btnBiometricTrigger').addEventListener('click', triggerBiometricAuth);
+    });
+
+    async function checkUserLocation() {
+      const indicator = document.getElementById('statusIndicator');
+      const btnAuth = document.getElementById('btnBiometricTrigger');
+      const instruction = document.getElementById('biometricInstruction');
+
+      indicator.className = 'status-indicator loading';
+      indicator.innerHTML = '<span class="spinner"></span><span>GETTING YOUR CURRENT LOCATION...</span>';
+      
+      document.getElementById('valLatitude').textContent = '--.------';
+      document.getElementById('valLongitude').textContent = '--.------';
+      document.getElementById('valAccuracy').textContent = '-- meters';
+      document.getElementById('valDistance').textContent = '-- meters';
+
+      btnAuth.classList.add('disabled');
+      btnAuth.disabled = true;
+
+      try {
+        currentPosData = await GeoService.getCurrentPosition();
+        
+        document.getElementById('valLatitude').textContent = currentPosData.latitude.toFixed(6);
+        document.getElementById('valLongitude').textContent = currentPosData.longitude.toFixed(6);
+        document.getElementById('valAccuracy').textContent = `${currentPosData.accuracy.toFixed(1)}m`;
+
+        // Pre-flight check on backend
+        const verifyRes = await API.verifyLocation(currentPosData);
+        if (!verifyRes.success) throw new Error(verifyRes.message);
+
+        const locResult = verifyRes.result;
+        document.getElementById('valRequiredRadius').textContent = `${locResult.required_radius} meters`;
+        
+        if (locResult.distance_meters !== null) {
+          document.getElementById('valDistance').textContent = `${locResult.distance_meters} meters`;
+        }
+
+        if (locResult.is_inside) {
+          indicator.className = 'status-indicator inside';
+          indicator.innerHTML = '✓ INSIDE AUTHORIZED AREA';
+          
+          btnAuth.classList.remove('disabled');
+          btnAuth.disabled = false;
+          instruction.textContent = 'Location verified! Tap the button to complete biometric authentication.';
+          instruction.style.color = 'var(--success)';
+        } else {
+          indicator.className = 'status-indicator outside';
+          indicator.innerHTML = '✕ OUTSIDE AUTHORIZED AREA';
+          
+          btnAuth.classList.add('disabled');
+          btnAuth.disabled = true;
+          instruction.textContent = locResult.message;
+          instruction.style.color = 'var(--danger)';
+        }
+      } catch (err) {
+        indicator.className = 'status-indicator outside';
+        indicator.innerHTML = `✕ LOCATION ERROR`;
+        instruction.textContent = err.message;
+        App.showAlert(err.message, 'danger');
+      }
+    }
+
+    async function triggerBiometricAuth() {
+      if (!currentPosData) {
+        App.showAlert('Current position not available. Refresh location.', 'danger');
+        return;
+      }
+
+      const targetUserId = currentUserData ? currentUserData.user_id : 'admin';
+
+      try {
+        App.showAlert('Contacting server & validating geofence coordinates...', 'info');
+        
+        // 1. Get WebAuthn Login Options from Server (with independent server-side geofence validation)
+        const optRes = await API.getWebAuthnLoginOptions(targetUserId, currentPosData);
+
+        if (!optRes.success) {
+          throw new Error(optRes.message || 'Server rejected location or options.');
+        }
+
+        App.showAlert('Please scan Fingerprint / Face ID on your device...', 'info');
+
+        // 2. Client WebAuthn Assertion
+        const credential = await WebAuthnService.authenticatePasskey(optRes.options);
+
+        App.showAlert('Verifying WebAuthn biometric assertion on server...', 'info');
+
+        // 3. Server Assertion Verification & Attendance Logging
+        const verifyRes = await API.verifyWebAuthnLogin(credential, currentPosData);
+
+        if (verifyRes.success) {
+          App.showAlert('🎉 Biometric authentication successful! Attendance recorded.', 'success');
+          setTimeout(() => {
+            window.location.href = '/history.html';
+          }, 1500);
+        }
+      } catch (err) {
+        App.showAlert(`Biometric authentication failed: ${err.message}`, 'danger');
+      }
+    }
+  </script>
+</body>
+</html>

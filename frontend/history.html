@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Attendance History — FXEC BIOMETRIC</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/" class="brand">
+      <div class="brand-icon">📜</div>
+      <span>Attendance History</span>
+    </a>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div id="topUserBadge" class="user-badge">Loading...</div>
+      <button id="topLogoutBtn" onclick="App.logout()" class="btn btn-skyblue" style="display: none; width: auto; padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-full);">
+        🚪 Logout
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <div id="alertContainer"></div>
+
+    <!-- Attendance Percentage Summary Widget with Live Refresh -->
+    <div class="card" id="historySummaryCard" style="display: none; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(15, 23, 42, 0.8) 100%); border-color: rgba(16, 185, 129, 0.3);">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <span style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px;">Your Attendance Score</span>
+          <div id="summaryPctValue" style="font-size: 1.8rem; font-weight: 700; color: var(--success);">--%</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <div style="text-align: right;">
+            <span style="font-size: 0.8rem; color: var(--text-muted);">DAYS PRESENT</span>
+            <div id="summaryDaysValue" style="font-size: 1.1rem; font-weight: 600; color: var(--text-main);">0 / 0 Days</div>
+          </div>
+          <button id="btnHistoryRefresh" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.8rem; margin-left: 8px;">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 1 to 7 Periods Timetable Attendance Table Card (Always Shown) -->
+    <div class="card" id="periodTableCard" style="border-color: rgba(59, 130, 246, 0.4); margin-bottom: 20px;">
+      <div class="card-title">📚 1-Period to 7-Periods Timetable Attendance Table</div>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px;">
+        Period-wise class presence status from Period 1 (09:00 AM) to Period 7 (04:05 PM).
+      </p>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>P1 (09:00-09:50)</th>
+              <th>P2 (09:50-10:40)</th>
+              <th>P3 (10:55-11:45)</th>
+              <th>P4 (11:45-12:35)</th>
+              <th>P5 (01:20-02:10)</th>
+              <th>P6 (02:10-03:00)</th>
+              <th>P7 (03:15-04:05)</th>
+            </tr>
+          </thead>
+          <tbody id="periodTableTbody">
+            <tr>
+              <td colspan="8" style="text-align: center; color: var(--text-dim); padding: 15px;">
+                Loading 7-period attendance...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📅 Daily Attendance History (In Time & Out Time)</div>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px;">
+        Overview of daily physical biometric attendance with In Time (1st punch) and Out Time (2nd punch).
+      </p>
+
+      <div class="table-responsive" style="margin-bottom: 24px;">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>In Time (Punch IN)</th>
+              <th>Out Time (Punch OUT)</th>
+              <th>Work Duration</th>
+              <th>Attendance Status</th>
+            </tr>
+          </thead>
+          <tbody id="dailySummaryTbody">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 15px;">
+                Loading daily summary...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📜 Biometric Authentication Log Entries</div>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px;">
+        Chronological record of all physical authentication attempts.
+      </p>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date & Time</th>
+              <th>Distance</th>
+              <th>Accuracy</th>
+              <th>Result</th>
+            </tr>
+          </thead>
+          <tbody id="historyTableBody">
+            <tr>
+              <td colspan="4" style="text-align: center; color: var(--text-dim); padding: 20px;">
+                Loading attendance history...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="/authenticate.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+
+      <span>Authenticate</span>
+    </a>
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/history.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7 7.07 7.07 0 01-6-3.44l-1.42 1.42A8.95 8.95 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    function formatTime(tsStr) {
+      if (!tsStr) return '--';
+      const parts = tsStr.split(' ');
+      if (parts.length < 2) return tsStr;
+      const timeParts = parts[1].split(':');
+      let hours = parseInt(timeParts[0], 10);
+      const minutes = timeParts[1];
+      const seconds = timeParts[2] || '00';
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const formattedHours = hours < 10 ? '0' + hours : hours;
+      return `${formattedHours}:${minutes}:${seconds} ${ampm}`;
+    }
+
+    async function loadHistoryData() {
+      try {
+        const res = await API.getUserHistory();
+        const tbody = document.getElementById('historyTableBody');
+
+        if (res.success && res.stats) {
+          const summaryCard = document.getElementById('historySummaryCard');
+          const pctEl = document.getElementById('summaryPctValue');
+          const daysEl = document.getElementById('summaryDaysValue');
+          
+          summaryCard.style.display = 'block';
+          pctEl.textContent = `${res.stats.attendance_percentage}%`;
+          daysEl.textContent = `${res.stats.present_days} / ${res.stats.total_working_days} Days`;
+          
+          if (res.stats.attendance_percentage >= 75) pctEl.style.color = 'var(--success)';
+          else if (res.stats.attendance_percentage >= 50) pctEl.style.color = 'var(--warning)';
+          else pctEl.style.color = 'var(--danger)';
+        }
+
+        const summaryTbody = document.getElementById('dailySummaryTbody');
+        if (summaryTbody) {
+          if (res.daily_summary && res.daily_summary.length > 0) {
+            summaryTbody.innerHTML = res.daily_summary.map(ds => {
+              const isAbsent = ds.status === 'ABSENT' || !ds.punch_in;
+              const inTimeFormatted = isAbsent ? '<span style="color: var(--danger); font-weight: 600;">🔴 Not Punched</span>' : `<span style="color: var(--success); font-weight: 600;">🟢 ${formatTime(ds.punch_in)}</span>`;
+              const outTimeFormatted = isAbsent ? '--' : (ds.punch_out ? formatTime(ds.punch_out) : 'Pending Out');
+              const duration = isAbsent ? '0h 0m' : (ds.duration ? ds.duration : '--');
+              
+              let statusBadge = '<span class="badge badge-danger">🔴 ABSENT</span>';
+              if (!isAbsent) {
+                statusBadge = ds.punch_out 
+                  ? '<span class="badge badge-success">COMPLETED (IN & OUT)</span>'
+                  : '<span class="badge badge-warning">IN ONLY</span>';
+              }
+
+              return `
+                <tr>
+                  <td><strong>${ds.date}</strong></td>
+                  <td>${inTimeFormatted}</td>
+                  <td>${ds.punch_out ? `<span style="color: var(--danger); font-weight: 600;">🔴 ${outTimeFormatted}</span>` : `<span style="color: var(--text-dim);">${outTimeFormatted}</span>`}</td>
+                  <td>⏱️ ${duration}</td>
+                  <td>${statusBadge}</td>
+                </tr>
+              `;
+            }).join('');
+          } else {
+            summaryTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 15px;">No daily punch history recorded.</td></tr>';
+          }
+        }
+
+        const periodTbody = document.getElementById('periodTableTbody');
+        if (periodTbody) {
+          if (res.daily_summary && res.daily_summary.length > 0) {
+            periodTbody.innerHTML = res.daily_summary.map(ds => {
+              const pCells = (ds.periods || []).map(p => {
+                return p.status === 'PRESENT'
+                  ? '<td><span class="badge badge-success" style="font-size:0.72rem; padding: 2px 6px;">🟢 P' + p.period + '</span></td>'
+                  : '<td><span class="badge badge-danger" style="font-size:0.72rem; padding: 2px 6px;">🔴 P' + p.period + '</span></td>';
+              }).join('');
+
+              return `
+                <tr>
+                  <td><strong>${ds.date}</strong></td>
+                  ${pCells}
+                </tr>
+              `;
+            }).join('');
+          } else {
+            periodTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 15px;">No period attendance recorded.</td></tr>';
+          }
+        }
+
+        if (tbody && res.logs) {
+          tbody.innerHTML = res.logs.map(log => {
+            let badgeClass = 'badge-danger';
+            if (log.result === 'SUCCESS') badgeClass = 'badge-success';
+            else if (log.result === 'OUTSIDE_RADIUS') badgeClass = 'badge-warning';
+
+            return `
+              <tr>
+                <td>${log.timestamp ? log.timestamp + ' IST' : '--'}</td>
+                <td>${log.calculated_distance !== null ? log.calculated_distance + 'm' : '--'}</td>
+                <td>${log.gps_accuracy !== null ? log.gps_accuracy + 'm' : '--'}</td>
+                <td><span class="badge ${badgeClass}">${log.result}</span></td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        console.error('Failed to load history data:', err);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      await loadHistoryData();
+      setInterval(loadHistoryData, 10000);
+
+      const btnRefresh = document.getElementById('btnHistoryRefresh');
+      if (btnRefresh) {
+        btnRefresh.addEventListener('click', async () => {
+          btnRefresh.disabled = true;
+          btnRefresh.textContent = '🔄 Syncing...';
+          await loadHistoryData();
+          setTimeout(() => {
+            btnRefresh.disabled = false;
+            btnRefresh.textContent = '🔄 Refresh';
+          }, 600);
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Register — GeoBio Auth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/" class="brand">
+      <div class="brand-icon">📝</div>
+      <span>GeoBio Register</span>
+    </a>
+    <div id="topUserBadge" class="user-badge">Guest</div>
+  </header>
+
+  <main class="app-container">
+    <div id="alertContainer"></div>
+
+    <!-- Step 1: User Account Registration -->
+    <div class="card" id="stepRegistrationCard">
+      <h2 class="card-title">Create User Account</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px;">
+        Enter your official credentials below.
+      </p>
+
+      <form id="registerForm">
+        <div class="form-group">
+          <label class="form-label" for="user_id">User ID / Roll No / Employee ID</label>
+          <input type="text" id="user_id" class="form-input" placeholder="e.g. STU98765" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="full_name">Full Name</label>
+          <input type="text" id="full_name" class="form-input" placeholder="e.g. Alex Rivera" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="email">Email Address</label>
+          <input type="email" id="email" class="form-input" placeholder="alex@organization.edu" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="phone">Phone Number</label>
+          <input type="tel" id="phone" class="form-input" placeholder="+1234567890" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Fallback Account Password</label>
+          <input type="password" id="password" class="form-input" placeholder="Create a secure password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          Register & Setup Passkey →
+        </button>
+      </form>
+    </div>
+
+    <!-- Step 2: Biometric Passkey Enrollment Modal / Section -->
+    <div class="card" id="stepPasskeyCard" style="display: none; text-align: center;">
+      <div style="font-size: 3rem; margin-bottom: 10px;">☝️</div>
+      <h2 class="card-title" style="justify-content: center;">Enroll Device Biometric</h2>
+      <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">
+        Account created! Now tap below to register your smartphone Fingerprint, Face ID, or PIN.
+      </p>
+
+      <button id="btnEnrollPasskey" class="btn btn-success" style="font-size: 1.05rem; padding: 14px;">
+        REGISTER BIOMETRIC PASSKEY
+      </button>
+
+      <div style="margin-top: 14px; font-size: 0.8rem; color: var(--text-dim);">
+        🔐 Raw fingerprint or facial data is never sent to the server. Verification occurs locally on your device.
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="/authenticate.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+
+      <span>Authenticate</span>
+    </a>
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/history.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7 7.07 7.07 0 01-6-3.44l-1.42 1.42A8.95 8.95 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    let registeredUserId = null;
+
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user_id = document.getElementById('user_id').value;
+      const full_name = document.getElementById('full_name').value;
+      const email = document.getElementById('email').value;
+      const phone = document.getElementById('phone').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await API.registerUser({ user_id, full_name, email, phone, password });
+        if (res.success) {
+          registeredUserId = res.user.user_id;
+          App.showAlert('Account registered! Now please enroll your biometric passkey.', 'success');
+          document.getElementById('stepRegistrationCard').style.display = 'none';
+          document.getElementById('stepPasskeyCard').style.display = 'block';
+        }
+      } catch (err) {
+        App.showAlert(err.message, 'danger');
+      }
+    });
+
+    document.getElementById('btnEnrollPasskey').addEventListener('click', async () => {
+      if (!registeredUserId) {
+        App.showAlert('Missing registered user ID.', 'danger');
+        return;
+      }
+
+      try {
+        App.showAlert('Generating WebAuthn registration challenge...', 'info');
+        const optRes = await API.getWebAuthnRegisterOptions(registeredUserId);
+        
+        if (!optRes.success) {
+          throw new Error(optRes.message || 'Failed to get WebAuthn options.');
+        }
+
+        App.showAlert('Please complete device biometric prompt...', 'info');
+        const credential = await WebAuthnService.registerPasskey(optRes.options);
+
+        App.showAlert('Verifying biometric credential on server...', 'info');
+        const verifyRes = await API.verifyWebAuthnRegister(credential, `${navigator.platform} Passkey`);
+
+        if (verifyRes.success) {
+          App.showAlert('🎉 Biometric registration complete! Redirecting to Dashboard...', 'success');
+          setTimeout(() => {
+            window.location.href = '/dashboard.html';
+          }, 1500);
+        }
+      } catch (err) {
+        App.showAlert(`Passkey enrollment error: ${err.message}`, 'danger');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>User Dashboard — GeoBio Auth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/" class="brand">
+      <div class="brand-icon">👤</div>
+      <span>User Dashboard</span>
+    </a>
+    <div id="topUserBadge" class="user-badge">Loading...</div>
+  </header>
+
+  <main class="app-container">
+    <div id="alertContainer"></div>
+
+    <!-- Header Greeting -->
+    <div class="card" style="background: linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%); border-color: rgba(59, 130, 246, 0.3);">
+      <h1 id="welcomeHeading" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 4px;">Welcome, User</h1>
+      <div id="userSubtitle" style="font-size: 0.88rem; color: var(--text-muted);">User ID: -</div>
+    </div>
+
+    <!-- Quick Status Cards Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Biometric Passkey</span>
+        <div id="statPasskeyStatus" class="stat-value" style="font-size: 1.2rem; color: var(--warning);">
+          Checking...
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Today's Attendance</span>
+        <div id="statTodayAuth" class="stat-value" style="font-size: 1.2rem; color: var(--text-muted);">
+          Pending
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Shortcuts -->
+    <div class="card">
+      <div class="card-title">🚀 Quick Actions</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <a href="/authenticate.html" class="btn btn-success" style="padding: 14px; font-size: 1.02rem;">
+          ⚡ Authenticate with Biometric
+        </a>
+        <a href="/register.html" class="btn btn-secondary" id="btnRegisterPasskeyShortcut">
+          ☝️ Register / Manage Passkeys
+        </a>
+        <a href="/history.html" class="btn btn-secondary">
+          📜 View Attendance History
+        </a>
+        <button id="btnLogout" class="btn btn-danger" style="margin-top: 6px;">
+          🚪 Log Out
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="/authenticate.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+
+      <span>Authenticate</span>
+    </a>
+    <a href="/dashboard.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/history.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7 7.07 7.07 0 01-6-3.44l-1.42 1.42A8.95 8.95 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await API.getCurrentUser();
+        if (!res.authenticated || !res.user) {
+          window.location.href = '/login.html';
+          return;
+        }
+
+        const user = res.user;
+        document.getElementById('welcomeHeading').textContent = `Welcome, ${user.full_name}`;
+        document.getElementById('userSubtitle').textContent = `User ID: ${user.user_id} | Email: ${user.email}`;
+
+        const passkeyStat = document.getElementById('statPasskeyStatus');
+        if (user.has_passkey) {
+          passkeyStat.textContent = 'Registered ✓';
+          passkeyStat.style.color = 'var(--success)';
+        } else {
+          passkeyStat.textContent = 'Not Registered ✕';
+          passkeyStat.style.color = 'var(--danger)';
+        }
+
+        // Fetch User Attendance History for today's status
+        const histRes = await API.getUserHistory();
+        if (histRes.success && histRes.logs) {
+          const todayStr = new Date().toISOString().split('T')[0];
+          const todaySuccess = histRes.logs.find(log => log.timestamp.startsWith(todayStr) && log.result === 'SUCCESS');
+          const todayAuthStat = document.getElementById('statTodayAuth');
+          if (todaySuccess) {
+            todayAuthStat.textContent = 'Authenticated ✓';
+            todayAuthStat.style.color = 'var(--success)';
+          } else {
+            todayAuthStat.textContent = 'Not Authenticated';
+            todayAuthStat.style.color = 'var(--warning)';
+          }
+        }
+      } catch (e) {
+        App.showAlert('Session expired or error loading dashboard.', 'danger');
+      }
+
+      document.getElementById('btnLogout').addEventListener('click', async () => {
+        await API.logoutUser();
+        window.location.href = '/login.html';
+      });
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>User Dashboard — FXEC BIOMETRIC</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/" class="brand">
+      <div class="brand-icon">👤</div>
+      <span>User Dashboard</span>
+    </a>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div id="topUserBadge" class="user-badge">Loading...</div>
+      <button id="topLogoutBtn" onclick="App.logout()" class="btn btn-skyblue" style="display: none; width: auto; padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-full);">
+        🚪 Logout
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <div id="alertContainer"></div>
+
+    <!-- Header Greeting with Live Auto-Refresh -->
+    <div class="card" style="background: linear-gradient(135deg, rgba(30, 58, 138, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%); border-color: rgba(59, 130, 246, 0.3);">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+        <div>
+          <h1 id="welcomeHeading" style="font-size: 1.4rem; font-weight: 700; margin-bottom: 4px;">Welcome, User</h1>
+          <div id="userSubtitle" style="font-size: 0.88rem; color: var(--text-muted);">User ID: -</div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="liveSyncBadge" class="user-badge" style="background: rgba(16, 185, 129, 0.15); color: var(--success); border-color: rgba(16, 185, 129, 0.3); font-size: 0.78rem;">
+            🟢 Live Auto-Sync (10s)
+          </span>
+          <button id="btnManualRefresh" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.8rem;">
+            🔄 Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Status Cards Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Account Status</span>
+        <div id="statPasskeyStatus" class="stat-value" style="font-size: 1.2rem; color: var(--success);">
+          Active ✓
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Punch In Time (1st)</span>
+        <div id="statPunchIn" class="stat-value" style="font-size: 1.1rem; color: var(--text-muted);">
+          --:--
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Punch Out Time (2nd)</span>
+        <div id="statPunchOut" class="stat-value" style="font-size: 1.1rem; color: var(--text-muted);">
+          --:--
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Attendance Rate</span>
+        <div id="statAttendancePct" class="stat-value" style="font-size: 1.2rem; color: var(--primary);">
+          --%
+        </div>
+      </div>
+    </div>
+
+    <!-- Daily Attendance History Card (In Time & Out Time - Always Shown) -->
+    <div class="card" id="dailySummaryCardDashboard" style="margin-bottom: 20px;">
+      <div class="card-title">📅 Daily Attendance History (In Time & Out Time)</div>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">
+        Overview of daily physical biometric attendance with In Time (1st punch) and Out Time (2nd punch).
+      </p>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>In Time (Punch IN)</th>
+              <th>Out Time (Punch OUT)</th>
+              <th>Work Duration</th>
+              <th>Attendance Status</th>
+            </tr>
+          </thead>
+          <tbody id="dailySummaryTbodyDashboard">
+            <tr>
+              <td colspan="5" style="text-align: center; color: var(--text-dim); padding: 12px;">
+                Loading daily summary...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 1 to 7 Periods Timetable Attendance Table Card (Always Shown) -->
+    <div class="card" id="periodTableCardDashboard" style="border-color: rgba(59, 130, 246, 0.4); margin-bottom: 20px;">
+      <div class="card-title">📚 1-Period to 7-Periods Timetable Attendance Table</div>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">
+        Period-wise class presence status from Period 1 (09:00 AM) to Period 7 (04:05 PM).
+      </p>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>P1 (09:00-09:50)</th>
+              <th>P2 (09:50-10:40)</th>
+              <th>P3 (10:55-11:45)</th>
+              <th>P4 (11:45-12:35)</th>
+              <th>P5 (01:20-02:10)</th>
+              <th>P6 (02:10-03:00)</th>
+              <th>P7 (03:15-04:05)</th>
+            </tr>
+          </thead>
+          <tbody id="periodTableTbodyDashboard">
+            <tr>
+              <td colspan="8" style="text-align: center; color: var(--text-dim); padding: 12px;">
+                Loading period attendance...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Action Shortcuts -->
+    <div class="card">
+      <div class="card-title">🚀 Quick Actions</div>
+      <div style="display: flex; flex-direction: column; gap: 10px;">
+        <a href="/authenticate.html" class="btn btn-success" style="padding: 14px; font-size: 1.02rem;">
+          ⚡ Authenticate with Biometric
+        </a>
+        <a href="/history.html" class="btn btn-secondary">
+          📜 View Attendance History
+        </a>
+        <button id="btnLogout" class="btn btn-danger" style="margin-top: 6px;">
+          🚪 Log Out
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="/authenticate.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+
+      <span>Authenticate</span>
+    </a>
+    <a href="/dashboard.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/history.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7 7.07 7.07 0 01-6-3.44l-1.42 1.42A8.95 8.95 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    function formatTime(tsStr) {
+      if (!tsStr) return '--';
+      const parts = tsStr.split(' ');
+      if (parts.length < 2) return tsStr;
+      const timeParts = parts[1].split(':');
+      let hours = parseInt(timeParts[0], 10);
+      const minutes = timeParts[1];
+      const seconds = timeParts[2] || '00';
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      hours = hours % 12;
+      hours = hours ? hours : 12;
+      const formattedHours = hours < 10 ? '0' + hours : hours;
+      return `${formattedHours}:${minutes}:${seconds} ${ampm}`;
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await API.getCurrentUser();
+        if (!res.authenticated || !res.user) {
+          window.location.href = '/login.html';
+          return;
+        }
+
+        const user = res.user;
+        document.getElementById('welcomeHeading').textContent = `Welcome, ${user.full_name}`;
+        document.getElementById('userSubtitle').textContent = `User ID: ${user.user_id} | Email: ${user.email}`;
+
+        const passkeyStat = document.getElementById('statPasskeyStatus');
+        if (passkeyStat) {
+          passkeyStat.textContent = 'Active ✓';
+          passkeyStat.style.color = 'var(--success)';
+        }
+
+    async function loadDashboardData() {
+      try {
+        const histRes = await API.getUserHistory();
+        if (histRes.success && histRes.stats) {
+          const punchInEl = document.getElementById('statPunchIn');
+          const punchOutEl = document.getElementById('statPunchOut');
+
+          if (histRes.stats.today_punch_in) {
+            punchInEl.textContent = histRes.stats.today_punch_in.split(' ')[1] + ' ✓';
+            punchInEl.style.color = 'var(--success)';
+          } else {
+            punchInEl.textContent = 'Not Punched (ABSENT)';
+            punchInEl.style.color = 'var(--danger)';
+          }
+
+          if (histRes.stats.today_punch_out) {
+            punchOutEl.textContent = histRes.stats.today_punch_out.split(' ')[1] + ' ✓';
+            punchOutEl.style.color = 'var(--success)';
+          } else {
+            punchOutEl.textContent = histRes.stats.today_punch_in ? 'Pending Out' : '--';
+            punchOutEl.style.color = 'var(--text-muted)';
+          }
+
+          const pct = histRes.stats.attendance_percentage;
+          const pctEl = document.getElementById('statAttendancePct');
+          pctEl.textContent = `${pct}% (${histRes.stats.present_days}/${histRes.stats.total_working_days} Days)`;
+          if (pct >= 75) pctEl.style.color = 'var(--success)';
+          else if (pct >= 50) pctEl.style.color = 'var(--warning)';
+          else pctEl.style.color = 'var(--danger)';
+
+          // Render Daily Attendance History Table (In & Out Time)
+          const summaryTbody = document.getElementById('dailySummaryTbodyDashboard');
+          if (summaryTbody) {
+            if (histRes.daily_summary && histRes.daily_summary.length > 0) {
+              summaryTbody.innerHTML = histRes.daily_summary.map(ds => {
+                const isAbsent = ds.status === 'ABSENT' || !ds.punch_in;
+                const inTimeFormatted = isAbsent ? '<span style="color: var(--danger); font-weight: 600;">🔴 Not Punched</span>' : `<span style="color: var(--success); font-weight: 600;">🟢 ${formatTime(ds.punch_in)}</span>`;
+                const outTimeFormatted = isAbsent ? '--' : (ds.punch_out ? formatTime(ds.punch_out) : 'Pending Out');
+                const duration = isAbsent ? '0h 0m' : (ds.duration ? ds.duration : '--');
+                
+                let statusBadge = '<span class="badge badge-danger">🔴 ABSENT</span>';
+                if (!isAbsent) {
+                  statusBadge = ds.punch_out 
+                    ? '<span class="badge badge-success">COMPLETED (IN & OUT)</span>'
+                    : '<span class="badge badge-warning">IN ONLY</span>';
+                }
+
+                return `
+                  <tr>
+                    <td><strong>${ds.date}</strong></td>
+                    <td>${inTimeFormatted}</td>
+                    <td>${ds.punch_out ? `<span style="color: var(--danger); font-weight: 600;">🔴 ${outTimeFormatted}</span>` : `<span style="color: var(--text-dim);">${outTimeFormatted}</span>`}</td>
+                    <td>⏱️ ${duration}</td>
+                    <td>${statusBadge}</td>
+                  </tr>
+                `;
+              }).join('');
+            } else {
+              summaryTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 12px;">No daily punch history recorded.</td></tr>';
+            }
+          }
+
+          // Render 1 to 7 Periods Attendance Table
+          const periodTbody = document.getElementById('periodTableTbodyDashboard');
+          if (periodTbody) {
+            if (histRes.daily_summary && histRes.daily_summary.length > 0) {
+              periodTbody.innerHTML = histRes.daily_summary.map(ds => {
+                const pCells = (ds.periods || []).map(p => {
+                  return p.status === 'PRESENT'
+                    ? '<td><span class="badge badge-success" style="font-size:0.72rem; padding: 2px 6px;">🟢 P' + p.period + '</span></td>'
+                    : '<td><span class="badge badge-danger" style="font-size:0.72rem; padding: 2px 6px;">🔴 P' + p.period + '</span></td>';
+                }).join('');
+
+                return `
+                  <tr>
+                    <td><strong>${ds.date}</strong></td>
+                    ${pCells}
+                  </tr>
+                `;
+              }).join('');
+            } else {
+              periodTbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-dim); padding: 12px;">No period attendance recorded.</td></tr>';
+            }
+          }
+
+          const badgeEl = document.getElementById('liveSyncBadge');
+          if (badgeEl) {
+            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            badgeEl.textContent = `🟢 Live (${timeStr})`;
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching live dashboard data:', e);
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await API.getCurrentUser();
+        if (!res.authenticated || !res.user) {
+          window.location.href = '/login.html';
+          return;
+        }
+
+        const user = res.user;
+        document.getElementById('welcomeHeading').textContent = `Welcome, ${user.full_name}`;
+        document.getElementById('userSubtitle').textContent = `User ID: ${user.user_id} | Email: ${user.email}`;
+
+        const passkeyStat = document.getElementById('statPasskeyStatus');
+        if (passkeyStat) {
+          passkeyStat.textContent = 'Active ✓';
+          passkeyStat.style.color = 'var(--success)';
+        }
+
+        // Initial Load
+        await loadDashboardData();
+
+        // Start Live Auto-Refresh every 10 seconds
+        setInterval(loadDashboardData, 10000);
+
+        // Manual Refresh Button Listener
+        const btnRefresh = document.getElementById('btnManualRefresh');
+        if (btnRefresh) {
+          btnRefresh.addEventListener('click', async () => {
+            btnRefresh.disabled = true;
+            btnRefresh.textContent = '🔄 Syncing...';
+            await loadDashboardData();
+            setTimeout(() => {
+              btnRefresh.disabled = false;
+              btnRefresh.textContent = '🔄 Refresh';
+            }, 600);
+          });
+        }
+      } catch (e) {
+        App.showAlert('Session expired or error loading dashboard.', 'danger');
+      }
+
+      document.getElementById('btnLogout').addEventListener('click', async () => {
+        await API.logoutUser();
+        window.location.href = '/login.html';
+      });
+    });
+  </script>
+</body>
+</html>

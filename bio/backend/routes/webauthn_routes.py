@@ -1,0 +1,260 @@
+import json
+from flask import Blueprint, request, jsonify, session
+from backend.models.schemas import (
+    get_user_by_id, get_credentials_by_user, create_credential,
+    get_credential_by_id, update_credential_sign_count,
+    get_geofence_settings, log_authentication_event
+)
+from backend.services.geofence import verify_location
+from backend.services.webauthn_service import (
+    get_webauthn_registration_options, verify_webauthn_registration,
+    get_webauthn_authentication_options, verify_webauthn_authentication
+)
+
+webauthn_bp = Blueprint('webauthn', __name__, url_prefix='/api/webauthn')
+
+@webauthn_bp.route('/register/options', methods=['POST'])
+def register_options():
+    """Generates WebAuthn registration options for the current or specified user."""
+    data = request.get_json() or {}
+    user_id = data.get('user_id') or session.get('user_id')
+
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required to register a passkey.'}), 400
+
+    user = get_user_by_id(user_id)
+    if not user:
+        return jsonify({'success': False, 'message': 'User account not found.'}), 404
+
+    existing_creds = get_credentials_by_user(user['user_id'])
+    
+    try:
+        options_json, challenge_b64 = get_webauthn_registration_options(
+            user['user_id'], user['full_name'], existing_creds
+        )
+        session['reg_challenge'] = challenge_b64
+        session['reg_user_id'] = user['user_id']
+
+        return jsonify({
+            'success': True,
+            'options': json.loads(options_json)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Failed to generate registration options: {str(e)}'}), 500
+
+
+@webauthn_bp.route('/register/verify', methods=['POST'])
+def register_verify():
+    """Verifies client WebAuthn registration response and persists public key."""
+    data = request.get_json() or {}
+    credential_payload = data.get('credential')
+    credential_name = data.get('credential_name', 'SmartDevice Passkey')
+    
+    challenge = session.get('reg_challenge')
+    user_id = session.get('reg_user_id') or session.get('user_id')
+
+    if not credential_payload or not challenge or not user_id:
+        return jsonify({'success': False, 'message': 'Invalid registration state or missing challenge.'}), 400
+
+    try:
+        cred_id_b64, public_key_b64, sign_count = verify_webauthn_registration(
+            credential_payload, challenge
+        )
+        
+        # Save credential in database
+        cred = create_credential(
+            user_id=user_id,
+            credential_id=cred_id_b64,
+            public_key=public_key_b64,
+            sign_count=sign_count,
+            credential_name=credential_name
+        )
+
+        session.pop('reg_challenge', None)
+
+        return jsonify({
+            'success': True,
+            'message': 'Passkey registered successfully! You can now authenticate using your smartphone biometric.',
+            'credential_id': cred['credential_id']
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Biometric registration verification failed: {str(e)}'}), 400
+
+
+@webauthn_bp.route('/login/options', methods=['POST'])
+def login_options():
+    """
+    Validates server-side geofence BEFORE generating authentication challenge options.
+    """
+    data = request.get_json() or {}
+    user_id = data.get('user_id') or session.get('user_id')
+    lat = data.get('latitude')
+    lon = data.get('longitude')
+    accuracy = data.get('accuracy')
+
+    if not user_id:
+        return jsonify({'success': False, 'message': 'User ID is required for authentication.'}), 400
+
+    user = get_user_by_id(user_id)
+    if not user:
+        return jsonify({'success': False, 'message': 'User account not found.'}), 404
+
+    if user['status'] != 'active':
+        log_authentication_event(
+            user_id=user['user_id'], latitude=lat, longitude=lon, gps_accuracy=accuracy,
+            calculated_distance=0, result='FAILED', failure_reason='Inactive User Account',
+            ip_address=request.remote_addr, user_agent=request.user_agent.string
+        )
+        return jsonify({'success': False, 'message': 'User account is inactive.'}), 403
+
+    # Check user passkeys
+    user_creds = get_credentials_by_user(user['user_id'])
+    if not user_creds:
+        return jsonify({'success': False, 'message': 'No biometric passkey registered for this account. Please register a passkey first.'}), 400
+
+    # SERVER-SIDE INDEPENDENT GEOFENCE VALIDATION
+    geofence = get_geofence_settings()
+    loc_result = verify_location(lat, lon, accuracy, geofence)
+
+    if not loc_result['is_inside']:
+        # Log failure event to database
+        log_authentication_event(
+            user_id=user['user_id'],
+            latitude=lat,
+            longitude=lon,
+            gps_accuracy=accuracy,
+            calculated_distance=loc_result.get('distance_meters', 0),
+            result='OUTSIDE_RADIUS' if loc_result['status'] == 'OUTSIDE_RADIUS' else 'LOCATION_DENIED',
+            failure_reason=loc_result['message'],
+            ip_address=request.remote_addr,
+            user_agent=request.user_agent.string
+        )
+        return jsonify({
+            'success': False,
+            'reason': loc_result['status'],
+            'message': loc_result['message'],
+            'distance_meters': loc_result.get('distance_meters'),
+            'required_radius': loc_result['required_radius']
+        }), 403
+
+    # Geofence check passed: Generate WebAuthn options
+    try:
+        options_json, challenge_b64 = get_webauthn_authentication_options(user_creds)
+        session['auth_challenge'] = challenge_b64
+        session['auth_user_id'] = user['user_id']
+        session['auth_lat'] = lat
+        session['auth_lon'] = lon
+        session['auth_accuracy'] = accuracy
+        session['auth_distance'] = loc_result.get('distance_meters')
+
+        return jsonify({
+            'success': True,
+            'location_verified': True,
+            'distance_meters': loc_result.get('distance_meters'),
+            'required_radius': loc_result['required_radius'],
+            'options': json.loads(options_json)
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'Failed to generate authentication options: {str(e)}'}), 500
+
+
+@webauthn_bp.route('/login/verify', methods=['POST'])
+def login_verify():
+    """
+    Verifies client WebAuthn assertion response and records attendance event.
+    """
+    data = request.get_json() or {}
+    credential_payload = data.get('credential')
+    
+    challenge = session.get('auth_challenge')
+    user_id = session.get('auth_user_id') or session.get('user_id')
+    lat = session.get('auth_lat') or data.get('latitude')
+    lon = session.get('auth_lon') or data.get('longitude')
+    accuracy = session.get('auth_accuracy') or data.get('accuracy')
+    distance = session.get('auth_distance') or data.get('distance')
+
+    if not credential_payload or not challenge or not user_id:
+        log_authentication_event(
+            user_id=user_id or 'unknown', latitude=lat, longitude=lon, gps_accuracy=accuracy,
+            calculated_distance=distance or 0, result='BIOMETRIC_FAILED',
+            failure_reason='Missing challenge or authentication session state',
+            ip_address=request.remote_addr, user_agent=request.user_agent.string
+        )
+        return jsonify({'success': False, 'message': 'Invalid authentication session or missing challenge.'}), 400
+
+    # Find credential ID from payload
+    cred_raw_id = None
+    if isinstance(credential_payload, dict):
+        cred_raw_id = credential_payload.get('id')
+    
+    if not cred_raw_id:
+        return jsonify({'success': False, 'message': 'Invalid credential response payload format.'}), 400
+
+    stored_cred = get_credential_by_id(cred_raw_id)
+    if not stored_cred:
+        log_authentication_event(
+            user_id=user_id, latitude=lat, longitude=lon, gps_accuracy=accuracy,
+            calculated_distance=distance or 0, result='BIOMETRIC_FAILED',
+            failure_reason='Unrecognized credential ID',
+            ip_address=request.remote_addr, user_agent=request.user_agent.string
+        )
+        return jsonify({'success': False, 'message': 'Credential not registered for this account.'}), 400
+
+    # VERIFY WEBAUTHN ASSERTION SIGNATURE
+    try:
+        new_sign_count = verify_webauthn_authentication(
+            credential_payload=credential_payload,
+            expected_challenge_b64=challenge,
+            public_key_b64=stored_cred['public_key'],
+            current_sign_count=stored_cred['sign_count']
+        )
+        
+        # Update sign count
+        update_credential_sign_count(stored_cred['credential_id'], new_sign_count)
+        
+        # Log successful attendance/authentication event
+        user = get_user_by_id(user_id)
+        log_authentication_event(
+            user_id=user['user_id'],
+            latitude=lat,
+            longitude=lon,
+            gps_accuracy=accuracy,
+            calculated_distance=distance or 0,
+            result='SUCCESS',
+            failure_reason=None,
+            credential_id=stored_cred['credential_id'],
+            ip_address=request.remote_addr,
+            user_agent=request.user_agent.string
+        )
+
+        # Set user session
+        session['user_id'] = user['user_id']
+        session['role'] = user['role']
+        session['full_name'] = user['full_name']
+
+        # Clear challenge
+        session.pop('auth_challenge', None)
+
+        return jsonify({
+            'success': True,
+            'message': 'Biometric authentication successful!',
+            'user': {
+                'user_id': user['user_id'],
+                'full_name': user['full_name'],
+                'role': user['role']
+            },
+            'location_info': {
+                'latitude': lat,
+                'longitude': lon,
+                'distance_meters': distance
+            }
+        })
+    except Exception as e:
+        log_authentication_event(
+            user_id=user_id, latitude=lat, longitude=lon, gps_accuracy=accuracy,
+            calculated_distance=distance or 0, result='BIOMETRIC_FAILED',
+            failure_reason=f'WebAuthn assertion failed: {str(e)}',
+            credential_id=stored_cred['credential_id'],
+            ip_address=request.remote_addr, user_agent=request.user_agent.string
+        )
+        return jsonify({'success': False, 'message': f'Biometric verification failed: {str(e)}'}), 400

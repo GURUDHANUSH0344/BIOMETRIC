@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Late In-Time Permission Form & PDF — FXEC BIOMETRIC</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <style>
+    /* Print styles for PDF generation */
+    @media print {
+      body { background: #fff !important; color: #000 !important; }
+      .top-header, .bottom-nav, #alertContainer, .no-print { display: none !important; }
+      .app-container { max-width: 100% !important; padding: 0 !important; margin: 0 !important; }
+      .pdf-document {
+        display: block !important;
+        border: 2px solid #1e3a8a !important;
+        padding: 30px !important;
+        background: #fff !important;
+        color: #000 !important;
+        font-family: Arial, sans-serif !important;
+      }
+      .pdf-title { color: #1e3a8a !important; font-size: 1.6rem !important; }
+      .pdf-badge { border: 1px solid #000 !important; color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/" class="brand">
+      <div class="brand-icon">⚠️</div>
+      <span>Late In-Time Form</span>
+    </a>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div id="topUserBadge" class="user-badge" style="background: rgba(239,68,68,0.2); color: var(--danger);">🔴 BLOCKED</div>
+      <button id="topLogoutBtn" onclick="App.logout()" class="btn btn-skyblue" style="width: auto; padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-full);">
+        🚪 Logout
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <div id="alertContainer"></div>
+
+    <!-- Alert Warning Banner -->
+    <div class="card" style="border-color: rgba(239, 68, 68, 0.4); background: linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(15, 23, 42, 0.8) 100%);">
+      <div style="display: flex; align-items: flex-start; gap: 14px;">
+        <div style="font-size: 2.2rem;">🚨</div>
+        <div>
+          <h2 style="font-size: 1.15rem; font-weight: 700; color: var(--danger); margin-bottom: 4px;">Account Temporarily Blocked (Late In-Time)</h2>
+          <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.4;">
+            Your biometric punch IN occurred after the <strong>09:15 AM</strong> IST cutoff time.
+            Please submit your official Late Arrival Reason below. <strong>Only System Administrators can remove your account block.</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Late Form Submission Card -->
+    <div class="card no-print">
+      <div class="card-title">📄 Create & Submit Late In-Time Permission Form</div>
+      
+      <div style="background: rgba(0,0,0,0.25); padding: 14px; border-radius: var(--radius-md); margin-bottom: 16px; font-size: 0.88rem;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+          <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">USER NAME</span><strong id="dispFullName">Loading...</strong></div>
+          <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">USER ID / ROLL NO</span><strong id="dispUserId">--</strong></div>
+          <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">DATE</span><strong id="dispDate">--</strong></div>
+          <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">PUNCH IN TIME</span><strong id="dispInTime" style="color: var(--danger);">--:--</strong></div>
+        </div>
+      </div>
+
+      <form id="lateForm">
+        <div class="form-group">
+          <label class="form-label" for="late_reason">Reason for Late Punch IN</label>
+          <textarea id="late_reason" class="form-input" style="height: 90px; resize: vertical;" placeholder="Explain why you arrived after 09:15 AM (e.g. Bus breakdown, medical delay, severe traffic)..." required></textarea>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+          <button type="submit" class="btn btn-primary" style="padding: 12px; font-size: 1rem;">
+            📲 Submit Reason to Admin
+          </button>
+          <button type="button" id="btnPrintPdf" class="btn btn-success" style="padding: 12px; font-size: 1rem;">
+            📄 Download / Print Late In-Time PDF Slip
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Official PDF Slip Document (Visible when printing or previewing) -->
+    <div id="pdfDocument" class="pdf-document card" style="background: #ffffff; color: #0f172a; border: 2px solid #1e3a8a; border-radius: var(--radius-lg); padding: 24px; margin-top: 20px;">
+      <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 14px; margin-bottom: 16px;">
+        <h2 class="pdf-title" style="margin: 0; font-size: 1.4rem; font-weight: 800; color: #1e3a8a;">FRANCIS XAVIER ENGINEERING COLLEGE</h2>
+        <div style="font-size: 0.82rem; color: #475569; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">AUTONOMOUS INSTITUTION — BIOMETRIC ATTENDANCE SYSTEM</div>
+        <div style="font-size: 1.1rem; font-weight: 700; color: #dc2626; margin-top: 8px;">OFFICIAL LATE IN-TIME PERMISSION SLIP</div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.9rem; margin-bottom: 18px; line-height: 1.6;">
+        <div><strong>Student / Employee:</strong> <span id="pdfName">-</span></div>
+        <div><strong>User ID / Roll No:</strong> <span id="pdfUserId">-</span></div>
+        <div><strong>Date of Late Arrival:</strong> <span id="pdfDate">-</span></div>
+        <div><strong>Recorded Punch IN:</strong> <span id="pdfInTime" style="color: #dc2626; font-weight: 700;">-</span></div>
+        <div><strong>Official Class Start:</strong> 09:00:00 AM IST</div>
+        <div><strong>Late Cutoff Limit:</strong> 09:15:00 AM IST</div>
+      </div>
+
+      <div style="margin-bottom: 20px; padding: 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px;">
+        <strong style="color: #1e3a8a; display: block; font-size: 0.85rem; text-transform: uppercase;">Stated Reason for Late Punch IN:</strong>
+        <p id="pdfReason" style="margin: 6px 0 0 0; font-size: 0.95rem; font-style: italic; color: #334155;">Awaiting submission...</p>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f1f5f9; border-radius: 6px; margin-bottom: 30px;">
+        <span style="font-weight: 700; font-size: 0.85rem;">BLOCK STATUS:</span>
+        <span id="pdfStatusBadge" class="pdf-badge" style="padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.82rem; background: #fee2e2; color: #dc2626;">
+          🔴 BLOCKED (PENDING ADMIN UNBLOCK)
+        </span>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; text-align: center; margin-top: 40px; border-top: 1px dashed #94a3b8; padding-top: 20px; font-size: 0.8rem; color: #475569;">
+        <div>
+          <div style="height: 35px;"></div>
+          _______________________<br>
+          <strong>User Signature</strong>
+        </div>
+        <div>
+          <div style="height: 35px;"></div>
+          _______________________<br>
+          <strong>HOD / Supervisor</strong>
+        </div>
+        <div>
+          <div style="height: 35px;"></div>
+          _______________________<br>
+          <strong>System Admin Seal & Sign</strong>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav no-print">
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/late_form.html" class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      <span>Late Form</span>
+    </a>
+    <a href="/history.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7 7.07 7.07 0 01-6-3.44l-1.42 1.42A8.95 8.95 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    let activeSlip = null;
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const userRes = await API.getCurrentUser();
+        if (!userRes.authenticated || !userRes.user) {
+          window.location.href = '/login.html';
+          return;
+        }
+
+        const user = userRes.user;
+        document.getElementById('dispFullName').textContent = user.full_name;
+        document.getElementById('dispUserId').textContent = user.user_id;
+        document.getElementById('pdfName').textContent = user.full_name;
+        document.getElementById('pdfUserId').textContent = user.user_id;
+
+        // Fetch latest late slip
+        const slipRes = await API.getLatestLateSlip();
+        if (slipRes.success && slipRes.slip) {
+          activeSlip = slipRes.slip;
+          document.getElementById('dispDate').textContent = activeSlip.date;
+          document.getElementById('dispInTime').textContent = activeSlip.in_time;
+          document.getElementById('pdfDate').textContent = activeSlip.date;
+          document.getElementById('pdfInTime').textContent = activeSlip.in_time;
+
+          if (activeSlip.reason && activeSlip.reason !== 'Pending late reason form submission') {
+            document.getElementById('late_reason').value = activeSlip.reason;
+            document.getElementById('pdfReason').textContent = activeSlip.reason;
+          }
+
+          if (activeSlip.status === 'APPROVED') {
+            document.getElementById('pdfStatusBadge').textContent = '🟢 APPROVED & UNBLOCKED BY ADMIN';
+            document.getElementById('pdfStatusBadge').style.background = '#dcfce7';
+            document.getElementById('pdfStatusBadge').style.color = '#15803d';
+            App.showAlert('🎉 Your Late In-Time Permission has been approved and unblocked by Admin!', 'success');
+          }
+        }
+      } catch (e) {
+        App.showAlert('No active late slip found or session error.', 'info');
+      }
+
+      document.getElementById('lateForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const reason = document.getElementById('late_reason').value.trim();
+
+        if (!activeSlip) {
+          App.showAlert('No active late slip record found.', 'danger');
+          return;
+        }
+
+        try {
+          App.showAlert('Submitting late permission reason...', 'info');
+          const res = await API.submitLateSlipReason({ slip_id: activeSlip.id, reason });
+          if (res.success) {
+            App.showAlert(res.message, 'success');
+            document.getElementById('pdfReason').textContent = reason;
+          }
+        } catch (err) {
+          App.showAlert(err.message, 'danger');
+        }
+      });
+
+      document.getElementById('btnPrintPdf').addEventListener('click', () => {
+        const reason = document.getElementById('late_reason').value.trim();
+        if (reason) {
+          document.getElementById('pdfReason').textContent = reason;
+        }
+        window.print();
+      });
+    });
+  </script>
+</body>
+</html>

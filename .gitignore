@@ -1,0 +1,22 @@
+# Python & Environment Cache
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+ENV/
+
+# Database & Log Artifacts
+*.db
+*.sqlite3
+*.log
+
+# IDE & OS Files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Antigravity artifacts
+.gemini/

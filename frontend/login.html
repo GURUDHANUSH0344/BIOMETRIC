@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Login — FXEC BIOMETRIC</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/" class="brand">
+      <div class="brand-icon">🔑</div>
+      <span>FXEC Login</span>
+    </a>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div id="topUserBadge" class="user-badge">Guest</div>
+      <button id="topLogoutBtn" onclick="App.logout()" class="btn btn-skyblue" style="display: none; width: auto; padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-full);">
+        🚪 Logout
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container">
+    <div id="alertContainer"></div>
+
+    <div class="card">
+      <h2 class="card-title">Sign In to Your Account</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px;">
+        Use your registered User ID or Email to sign in.
+      </p>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="user_id">User ID or Email</label>
+          <input type="text" id="user_id" class="form-input" placeholder="e.g. 25ADR036 or admin" required>
+        </div>
+
+        <!-- Live Attendance % Preview Banner (Appears when User ID is typed) -->
+        <div id="liveAttendancePreview" style="display: none; margin-bottom: 16px; padding: 12px; border-radius: var(--radius-md); background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.3);">
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div id="previewUserName" style="font-weight: 700; font-size: 0.95rem;">-</div>
+              <div id="previewDaysRatio" style="font-size: 0.78rem; color: var(--text-muted);">-</div>
+            </div>
+            <div style="text-align: right;">
+              <span style="font-size: 0.72rem; color: var(--text-dim); display: block;">ATTENDANCE SCORE</span>
+              <div id="previewPctBadge" style="font-size: 1.3rem; font-weight: 700; color: var(--success);">--%</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <label class="form-label" for="password" style="margin-bottom: 0;">Password</label>
+            <a href="javascript:void(0)" id="linkForgotPassword" style="font-size: 0.82rem; color: var(--primary); text-decoration: none; font-weight: 500;">Forgot Password?</a>
+          </div>
+          <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+          Login to Account
+        </button>
+      </form>
+    </div>
+
+    <!-- Reset Password with OTP Card (Shown when Forgot Password is clicked) -->
+    <div class="card" id="forgotPasswordCard" style="display: none; border-color: rgba(59, 130, 246, 0.4); margin-top: 16px;">
+      <h2 class="card-title">🔑 Forgot Password — Verify OTP</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px;">
+        Step 1: Enter your User ID / Email and registered phone number to receive a 6-digit OTP code.
+      </p>
+
+      <!-- Step 1 Form: Request OTP -->
+      <form id="requestOtpForm">
+        <div class="form-group">
+          <label class="form-label" for="reset_user_id">User ID or Email</label>
+          <input type="text" id="reset_user_id" class="form-input" placeholder="e.g. 25ADR036 or email" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reset_phone">Registered Phone Number</label>
+          <input type="tel" id="reset_phone" class="form-input" placeholder="+1234567890" required>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 14px;">
+          <button type="submit" id="btnSendOtp" class="btn btn-primary" style="flex: 1;">
+            📲 Send 6-Digit OTP
+          </button>
+          <button type="button" id="btnCancelReset" class="btn btn-secondary" style="width: auto;">
+            Cancel
+          </button>
+        </div>
+      </form>
+
+      <!-- Step 2 Form: Verify OTP & Change New Password (Hidden until OTP is sent) -->
+      <form id="verifyOtpForm" style="display: none; margin-top: 18px; padding-top: 18px; border-top: 1px dashed rgba(59, 130, 246, 0.4);">
+        <div class="alert-banner alert-success" style="margin-bottom: 16px;">
+          <span id="otpBannerMsg">OTP sent to registered phone number.</span>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reset_otp_code">Enter 6-Digit OTP</label>
+          <input type="text" id="reset_otp_code" class="form-input" placeholder="e.g. 654321" maxlength="6" required style="letter-spacing: 2px; font-weight: 700; font-size: 1.1rem; text-align: center;">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="reset_new_password">New Password</label>
+          <input type="password" id="reset_new_password" class="form-input" placeholder="Enter new password" required>
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 14px;">
+          <button type="submit" class="btn btn-success" style="flex: 1;">
+            🔑 Verify OTP & Reset Password
+          </button>
+          <button type="button" id="btnResendOtp" class="btn btn-secondary" style="width: auto;">
+            🔄 Resend OTP
+          </button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="/authenticate.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+
+      <span>Authenticate</span>
+    </a>
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/history.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7 7.07 7.07 0 01-6-3.44l-1.42 1.42A8.95 8.95 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    const userIdInput = document.getElementById('user_id');
+    const previewCard = document.getElementById('liveAttendancePreview');
+    const previewName = document.getElementById('previewUserName');
+    const previewDays = document.getElementById('previewDaysRatio');
+    const previewPct = document.getElementById('previewPctBadge');
+
+    let debounceTimer = null;
+
+    userIdInput.addEventListener('input', () => {
+      clearTimeout(debounceTimer);
+      const val = userIdInput.value.trim();
+      if (!val || val.length < 3) {
+        previewCard.style.display = 'none';
+        return;
+      }
+      debounceTimer = setTimeout(() => fetchAttendancePreview(val), 400);
+    });
+
+    userIdInput.addEventListener('blur', () => {
+      const val = userIdInput.value.trim();
+      if (val && val.length >= 3) {
+        fetchAttendancePreview(val);
+      }
+    });
+
+    async function fetchAttendancePreview(userId) {
+      try {
+        const res = await API.checkAttendance(userId);
+        if (res.success && res.attendance_stats) {
+          const stats = res.attendance_stats;
+          previewName.textContent = res.full_name || res.user_id;
+          previewDays.textContent = `Days Present: ${stats.present_days} / ${stats.total_working_days} Days`;
+          previewPct.textContent = `${stats.attendance_percentage}%`;
+          
+          if (stats.attendance_percentage >= 75) previewPct.style.color = 'var(--success)';
+          else if (stats.attendance_percentage >= 50) previewPct.style.color = 'var(--warning)';
+          else previewPct.style.color = 'var(--danger)';
+
+          previewCard.style.display = 'block';
+        } else {
+          previewCard.style.display = 'none';
+        }
+      } catch (e) {
+        previewCard.style.display = 'none';
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user_id = document.getElementById('user_id').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await API.loginUser({ user_id, password });
+        if (res.success) {
+          App.showAlert('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            if (res.user.role === 'admin') {
+              window.location.href = '/admin.html';
+            } else {
+              window.location.href = '/dashboard.html';
+            }
+          }, 1000);
+        }
+      } catch (err) {
+        App.showAlert(err.message, 'danger');
+      }
+    });
+
+    // Forgot Password Modal / Card Toggle & OTP Handlers
+    const linkForgot = document.getElementById('linkForgotPassword');
+    const forgotCard = document.getElementById('forgotPasswordCard');
+    const btnCancel = document.getElementById('btnCancelReset');
+    const requestOtpForm = document.getElementById('requestOtpForm');
+    const verifyOtpForm = document.getElementById('verifyOtpForm');
+    const btnResendOtp = document.getElementById('btnResendOtp');
+
+    let currentResetUserId = null;
+
+    if (linkForgot && forgotCard) {
+      linkForgot.addEventListener('click', () => {
+        const isHidden = forgotCard.style.display === 'none';
+        forgotCard.style.display = isHidden ? 'block' : 'none';
+        if (isHidden) {
+          const mainVal = document.getElementById('user_id').value.trim();
+          if (mainVal) document.getElementById('reset_user_id').value = mainVal;
+          verifyOtpForm.style.display = 'none';
+          requestOtpForm.style.display = 'block';
+          forgotCard.scrollIntoView({ behavior: 'smooth' });
+        }
+      });
+    }
+
+    if (btnCancel && forgotCard) {
+      btnCancel.addEventListener('click', () => {
+        forgotCard.style.display = 'none';
+      });
+    }
+
+    async function handleSendOtp() {
+      const user_id = document.getElementById('reset_user_id').value.trim();
+      const phone = document.getElementById('reset_phone').value.trim();
+
+      if (!user_id || !phone) {
+        App.showAlert('Please enter User ID / Email and Phone Number.', 'danger');
+        return;
+      }
+
+      try {
+        App.showAlert('Sending 6-digit OTP code to registered phone...', 'info');
+        const res = await API.sendOtp({ user_id, phone });
+        if (res.success) {
+          currentResetUserId = res.user_id;
+          App.showAlert(res.message, 'success');
+          document.getElementById('otpBannerMsg').textContent = res.message;
+          if (res.demo_otp) {
+            document.getElementById('reset_otp_code').value = res.demo_otp;
+          }
+          verifyOtpForm.style.display = 'block';
+          verifyOtpForm.scrollIntoView({ behavior: 'smooth' });
+        }
+      } catch (err) {
+        App.showAlert(err.message, 'danger');
+      }
+    }
+
+    if (requestOtpForm) {
+      requestOtpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleSendOtp();
+      });
+    }
+
+    if (btnResendOtp) {
+      btnResendOtp.addEventListener('click', async () => {
+        await handleSendOtp();
+      });
+    }
+
+    if (verifyOtpForm) {
+      verifyOtpForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user_id = currentResetUserId || document.getElementById('reset_user_id').value.trim();
+        const otp = document.getElementById('reset_otp_code').value.trim();
+        const new_password = document.getElementById('reset_new_password').value.trim();
+
+        try {
+          App.showAlert('Verifying OTP code and updating password...', 'info');
+          const res = await API.verifyOtpReset({ user_id, otp, new_password });
+          if (res.success) {
+            App.showAlert(res.message, 'success');
+            verifyOtpForm.reset();
+            requestOtpForm.reset();
+            verifyOtpForm.style.display = 'none';
+            forgotCard.style.display = 'none';
+            document.getElementById('user_id').value = user_id;
+          }
+        } catch (err) {
+          App.showAlert(err.message, 'danger');
+        }
+      });
+    }
+  </script>
+</body>
+</html>

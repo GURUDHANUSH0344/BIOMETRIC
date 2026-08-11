@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Logs & Export — FXEC BIOMETRIC</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/admin.html" class="brand">
+      <div class="brand-icon">📜</div>
+      <span>Audit & Attendance Logs</span>
+    </a>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div id="topUserBadge" class="user-badge">Admin</div>
+      <button id="topLogoutBtn" onclick="App.logout()" class="btn btn-skyblue" style="width: auto; padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-full);">
+        🚪 Logout
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container wide">
+    <div id="alertContainer"></div>
+
+    <div class="card" style="display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 18px; margin-bottom: 20px;">
+      <a href="/admin.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📊 Overview</a>
+      <a href="/users.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">👥 User Management</a>
+      <a href="/location.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📍 Geofence Settings</a>
+      <a href="/logs.html" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📜 Audit Logs & CSV Export</a>
+    </div>
+
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 16px;">
+        <div class="card-title" style="margin-bottom: 0;">Attendance Logs Filter</div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button id="btnProcessAbsentLogs" class="btn btn-warning" style="width: auto; font-size: 0.88rem; padding: 8px 16px;">
+            ⚡ Record Daily Absentees
+          </button>
+          <button id="btnExportCSV" class="btn btn-success" style="width: auto; font-size: 0.88rem; padding: 8px 16px;">
+            📥 Export Logs to CSV
+          </button>
+        </div>
+      </div>
+
+      <!-- Filters Row -->
+      <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px;">
+        <input type="text" id="logSearchInput" class="form-input" placeholder="Search user ID or name..." style="flex: 1; min-width: 180px;">
+        
+        <select id="dateFilterSelect" class="form-select" style="width: 150px;">
+          <option value="all">All Dates</option>
+          <option value="today">Today</option>
+          <option value="yesterday">Yesterday</option>
+          <option value="last_7_days">Last 7 Days</option>
+          <option value="last_30_days">Last 30 Days</option>
+        </select>
+
+        <select id="statusFilterSelect" class="form-select" style="width: 170px;">
+          <option value="all">All Results</option>
+          <option value="SUCCESS">SUCCESS</option>
+          <option value="ABSENT">ABSENT</option>
+          <option value="OUTSIDE_RADIUS">OUTSIDE RADIUS</option>
+          <option value="BIOMETRIC_FAILED">BIOMETRIC FAILED</option>
+          <option value="LOCATION_DENIED">LOCATION DENIED</option>
+        </select>
+
+        <button id="btnApplyLogFilter" class="btn btn-primary" style="width: auto;">Apply Filter</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>User ID</th>
+              <th>Full Name</th>
+              <th>Distance</th>
+              <th>Accuracy</th>
+              <th>Result</th>
+              <th>Details / Reason</th>
+            </tr>
+          </thead>
+          <tbody id="logsTableBody">
+            <tr><td colspan="7" style="text-align: center; color: var(--text-dim);">Loading logs...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      fetchLogs();
+
+      document.getElementById('btnApplyLogFilter').addEventListener('click', fetchLogs);
+      document.getElementById('btnExportCSV').addEventListener('click', exportCSV);
+      
+      const btnProcess = document.getElementById('btnProcessAbsentLogs');
+      if (btnProcess) {
+        btnProcess.addEventListener('click', async () => {
+          try {
+            const res = await API.processAbsentees();
+            if (res.success) {
+              App.showAlert(res.message, 'success');
+              fetchLogs();
+            }
+          } catch (e) {
+            App.showAlert(e.message, 'danger');
+          }
+        });
+      }
+    });
+
+    async function fetchLogs() {
+      const search = document.getElementById('logSearchInput').value;
+      const dateFilter = document.getElementById('dateFilterSelect').value;
+      const status = document.getElementById('statusFilterSelect').value;
+      const tbody = document.getElementById('logsTableBody');
+
+      try {
+        const res = await API.getAdminLogs(dateFilter, status, search);
+        if (!res.success) throw new Error(res.message);
+
+        if (!res.logs || res.logs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-dim);">No authentication records matching filters.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = res.logs.map(log => {
+          let badgeClass = 'badge-danger';
+          if (log.result === 'SUCCESS') badgeClass = 'badge-success';
+          else if (log.result === 'OUTSIDE_RADIUS') badgeClass = 'badge-warning';
+
+          return `
+            <tr>
+              <td>${log.timestamp ? log.timestamp + ' IST' : '--'}</td>
+              <td><strong>${log.user_id}</strong></td>
+              <td>${log.full_name || log.user_id}</td>
+              <td>${log.calculated_distance !== null ? log.calculated_distance + 'm' : '--'}</td>
+              <td>${log.gps_accuracy !== null ? log.gps_accuracy + 'm' : '--'}</td>
+              <td><span class="badge ${badgeClass}">${log.result}</span></td>
+              <td style="font-size: 0.8rem; color: var(--text-muted);">${log.failure_reason || 'Verified'}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        App.showAlert(e.message, 'danger');
+      }
+    }
+
+    function exportCSV() {
+      const search = document.getElementById('logSearchInput').value;
+      const dateFilter = document.getElementById('dateFilterSelect').value;
+      const status = document.getElementById('statusFilterSelect').value;
+
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (dateFilter) params.append('date_filter', dateFilter);
+      if (status) params.append('status', status);
+
+      window.location.href = `/api/admin/export?${params.toString()}`;
+    }
+  </script>
+</body>
+</html>

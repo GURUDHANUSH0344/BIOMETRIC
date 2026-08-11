@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management — Admin Panel</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/admin.html" class="brand">
+      <div class="brand-icon">👥</div>
+      <span>User Management</span>
+    </a>
+    <div id="topUserBadge" class="user-badge">Admin</div>
+  </header>
+
+  <main class="app-container wide">
+    <div id="alertContainer"></div>
+
+    <div class="card" style="display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 18px; margin-bottom: 20px;">
+      <a href="/admin.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📊 Overview</a>
+      <a href="/users.html" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">👥 User Management</a>
+      <a href="/location.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📍 Geofence Settings</a>
+      <a href="/logs.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📜 Audit Logs & CSV Export</a>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Registered Accounts</div>
+
+      <!-- Filters & Search Bar -->
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+        <input type="text" id="userSearchInput" class="form-input" placeholder="Search by name, email, or user ID..." style="flex: 1; min-width: 200px;">
+        <select id="userStatusSelect" class="form-select" style="width: 150px;">
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <button id="btnFilterUsers" class="btn btn-primary" style="width: auto;">Search</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Status</th>
+              <th>Passkeys</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="7" style="text-align: center; color: var(--text-dim);">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUsers();
+
+      document.getElementById('btnFilterUsers').addEventListener('click', loadUsers);
+      document.getElementById('userSearchInput').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') loadUsers();
+      });
+    });
+
+    async function loadUsers() {
+      const search = document.getElementById('userSearchInput').value;
+      const status = document.getElementById('userStatusSelect').value;
+      const tbody = document.getElementById('usersTableBody');
+
+      try {
+        const res = await API.getAdminUsers(search, status);
+        if (!res.success) throw new Error(res.message);
+
+        if (!res.users || res.users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-dim);">No users found.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = res.users.map(u => {
+          const isActive = u.status === 'active';
+          const statusBadge = isActive 
+            ? '<span class="badge badge-success">ACTIVE</span>'
+            : '<span class="badge badge-danger">INACTIVE</span>';
+
+          const toggleActionBtn = isActive
+            ? `<button onclick="toggleStatus('${u.user_id}', 'inactive')" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;">Deactivate</button>`
+            : `<button onclick="toggleStatus('${u.user_id}', 'active')" class="btn btn-success" style="width:auto; padding:4px 8px; font-size:0.75rem;">Activate</button>`;
+
+          const deleteBtn = u.user_id !== 'admin'
+            ? `<button onclick="deleteAccount('${u.user_id}')" class="btn btn-danger" style="width:auto; padding:4px 8px; font-size:0.75rem;">Delete</button>`
+            : '';
+
+          return `
+            <tr>
+              <td><strong>${u.user_id}</strong></td>
+              <td>${u.full_name}</td>
+              <td>${u.email}</td>
+              <td>${u.phone}</td>
+              <td>${statusBadge}</td>
+              <td>${u.credential_count > 0 ? `🟢 ${u.credential_count} key(s)` : '🔴 None'}</td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  ${toggleActionBtn}
+                  ${deleteBtn}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        App.showAlert(err.message, 'danger');
+      }
+    }
+
+    async function toggleStatus(user_id, new_status) {
+      try {
+        const res = await API.updateUserStatus(user_id, new_status);
+        if (res.success) {
+          App.showAlert(res.message, 'success');
+          loadUsers();
+        }
+      } catch (e) {
+        App.showAlert(e.message, 'danger');
+      }
+    }
+
+    async function deleteAccount(user_id) {
+      if (!confirm(`Are you sure you want to permanently delete user "${user_id}"?`)) return;
+
+      try {
+        const res = await API.deleteUser(user_id);
+        if (res.success) {
+          App.showAlert(res.message, 'success');
+          loadUsers();
+        }
+      } catch (e) {
+        App.showAlert(e.message, 'danger');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard — GeoBio Auth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/admin.html" class="brand">
+      <div class="brand-icon">⚙️</div>
+      <span>Admin Control Center</span>
+    </a>
+    <div style="display: flex; gap: 12px; align-items: center;">
+      <div id="topUserBadge" class="user-badge">Admin</div>
+      <button id="btnAdminLogout" class="btn btn-secondary" style="width: auto; padding: 6px 12px; font-size: 0.8rem;">Logout</button>
+    </div>
+  </header>
+
+  <main class="app-container wide">
+    <div id="alertContainer"></div>
+
+    <!-- Admin Navigation Links Header -->
+    <div class="card" style="display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 18px; margin-bottom: 20px;">
+      <a href="/admin.html" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📊 Overview</a>
+      <a href="/users.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">👥 User Management</a>
+      <a href="/location.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📍 Geofence Settings</a>
+      <a href="/logs.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📜 Audit Logs & CSV Export</a>
+    </div>
+
+    <!-- Statistics Overview Grid -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <span class="stat-label">Total Users</span>
+        <div id="statTotalUsers" class="stat-value">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Active Users</span>
+        <div id="statActiveUsers" class="stat-value" style="color: var(--success);">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Today's Authentications</span>
+        <div id="statTodaySuccess" class="stat-value" style="color: var(--primary);">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Today's Failed Attempts</span>
+        <div id="statTodayFailed" class="stat-value" style="color: var(--danger);">0</div>
+      </div>
+      <div class="stat-card">
+        <span class="stat-label">Users Inside Geofence</span>
+        <div id="statUsersInside" class="stat-value" style="color: var(--warning);">0</div>
+      </div>
+    </div>
+
+    <!-- Recent Activity Log Table -->
+    <div class="card">
+      <div class="card-title">Recent Authentication Events</div>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Name</th>
+              <th>Timestamp</th>
+              <th>Distance</th>
+              <th>Result</th>
+              <th>Reason</th>
+            </tr>
+          </thead>
+          <tbody id="recentActivityTbody">
+            <tr><td colspan="6" style="text-align: center; color: var(--text-dim);">Loading metrics...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top: 14px; text-align: right;">
+        <a href="/logs.html" style="color: var(--primary); font-size: 0.85rem; text-decoration: none;">View All Audit Logs →</a>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const res = await API.getAdminDashboard();
+        if (!res.success) throw new Error(res.message);
+
+        const stats = res.stats;
+        document.getElementById('statTotalUsers').textContent = stats.total_users;
+        document.getElementById('statActiveUsers').textContent = stats.active_users;
+        document.getElementById('statTodaySuccess').textContent = stats.today_success;
+        document.getElementById('statTodayFailed').textContent = stats.today_failed;
+        document.getElementById('statUsersInside').textContent = stats.users_inside_today;
+
+        const tbody = document.getElementById('recentActivityTbody');
+        if (res.recent_activity && res.recent_activity.length > 0) {
+          tbody.innerHTML = res.recent_activity.map(item => {
+            let badgeClass = 'badge-danger';
+            if (item.result === 'SUCCESS') badgeClass = 'badge-success';
+            else if (item.result === 'OUTSIDE_RADIUS') badgeClass = 'badge-warning';
+
+            return `
+              <tr>
+                <td><strong>${item.user_id}</strong></td>
+                <td>${item.full_name || item.user_id}</td>
+                <td>${new Date(item.timestamp).toLocaleString()}</td>
+                <td>${item.calculated_distance !== null ? item.calculated_distance + 'm' : '--'}</td>
+                <td><span class="badge ${badgeClass}">${item.result}</span></td>
+                <td style="font-size: 0.8rem; color: var(--text-muted);">${item.failure_reason || '-'}</td>
+              </tr>
+            `;
+          }).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-dim);">No recent activity logged.</td></tr>';
+        }
+      } catch (err) {
+        App.showAlert(`Admin authentication failed: ${err.message}`, 'danger');
+        setTimeout(() => window.location.href = '/login.html', 1500);
+      }
+
+      document.getElementById('btnAdminLogout').addEventListener('click', async () => {
+        await API.logoutUser();
+        window.location.href = '/login.html';
+      });
+    });
+  </script>
+</body>
+</html>

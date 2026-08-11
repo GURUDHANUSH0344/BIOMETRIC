@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management — FXEC BIOMETRIC</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/admin.html" class="brand">
+      <div class="brand-icon">👥</div>
+      <span>User Management</span>
+    </a>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <div id="topUserBadge" class="user-badge">Admin</div>
+      <button id="topLogoutBtn" onclick="App.logout()" class="btn btn-skyblue" style="width: auto; padding: 6px 14px; font-size: 0.8rem; border-radius: var(--radius-full);">
+        🚪 Logout
+      </button>
+    </div>
+  </header>
+
+  <main class="app-container wide">
+    <div id="alertContainer"></div>
+
+    <div class="card" style="display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 18px; margin-bottom: 20px;">
+      <a href="/admin.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📊 Overview</a>
+      <a href="/users.html" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">👥 User Management</a>
+      <a href="/location.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📍 Geofence Settings</a>
+      <a href="/logs.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📜 Audit Logs & CSV Export</a>
+    </div>
+
+    <div class="card" id="addUserCard" style="margin-bottom: 20px;">
+      <div class="card-title">➕ Add New User (Admin Only)</div>
+      <form id="adminCreateUserForm">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="add_user_id">User ID / Roll No</label>
+            <input type="text" id="add_user_id" class="form-input" placeholder="e.g. STU1001" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="add_full_name">Full Name</label>
+            <input type="text" id="add_full_name" class="form-input" placeholder="e.g. Jane Doe" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="add_email">Email Address</label>
+            <input type="email" id="add_email" class="form-input" placeholder="jane@org.edu" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="add_phone">Phone Number</label>
+            <input type="tel" id="add_phone" class="form-input" placeholder="+1234567890" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="add_password">Initial Password</label>
+            <input type="password" id="add_password" class="form-input" placeholder="Password (or default)" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label class="form-label" for="add_role">Role</label>
+            <select id="add_role" class="form-select">
+              <option value="user">User</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-success" style="margin-top: 14px; width: auto; font-size: 0.9rem; padding: 8px 18px;">
+          ➕ Create User Account
+        </button>
+      </form>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Registered Accounts</div>
+
+      <!-- Filters & Search Bar -->
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
+        <input type="text" id="userSearchInput" class="form-input" placeholder="Search by name, email, or user ID..." style="flex: 1; min-width: 200px;">
+        <select id="userStatusSelect" class="form-select" style="width: 150px;">
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
+        <button id="btnFilterUsers" class="btn btn-primary" style="width: auto;">Search</button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Full Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Status</th>
+              <th>Passkeys</th>
+              <th>Attendance %</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="8" style="text-align: center; color: var(--text-dim);">Loading users...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Edit User Modal -->
+    <div id="editUserModal" class="modal-overlay">
+      <div class="modal-content card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 class="card-title" style="margin-bottom: 0;">✏️ Edit User Details</h3>
+          <button type="button" onclick="closeEditModal()" class="btn btn-secondary" style="width: auto; padding: 4px 10px;">✕</button>
+        </div>
+
+        <form id="editUserForm">
+          <input type="hidden" id="edit_target_user_id">
+          
+          <div class="form-group">
+            <label class="form-label" for="edit_user_id">User ID / Roll No</label>
+            <input type="text" id="edit_user_id" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit_full_name">Full Name</label>
+            <input type="text" id="edit_full_name" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit_email">Email Address</label>
+            <input type="email" id="edit_email" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit_phone">Phone Number</label>
+            <input type="tel" id="edit_phone" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit_role">Role</label>
+            <select id="edit_role" class="form-select">
+              <option value="user">User</option>
+              <option value="admin">Administrator</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit_status">Account Status</label>
+            <select id="edit_status" class="form-select">
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="edit_password">New Password (leave blank to keep current password)</label>
+            <input type="password" id="edit_password" class="form-input" placeholder="Enter new password if changing">
+          </div>
+
+          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px;">
+            <button type="button" onclick="closeEditModal()" class="btn btn-secondary" style="width: auto;">Cancel</button>
+            <button type="submit" class="btn btn-success" style="width: auto;">💾 Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/webauthn.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      loadUsers();
+
+      document.getElementById('btnFilterUsers').addEventListener('click', loadUsers);
+      document.getElementById('userSearchInput').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') loadUsers();
+      });
+
+      document.getElementById('adminCreateUserForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user_id = document.getElementById('add_user_id').value;
+        const full_name = document.getElementById('add_full_name').value;
+        const email = document.getElementById('add_email').value;
+        const phone = document.getElementById('add_phone').value;
+        const password = document.getElementById('add_password').value;
+        const role = document.getElementById('add_role').value;
+
+        try {
+          const res = await API.adminCreateUser({ user_id, full_name, email, phone, password, role });
+          if (res.success) {
+            App.showAlert(res.message, 'success');
+            document.getElementById('adminCreateUserForm').reset();
+            loadUsers();
+          }
+        } catch (err) {
+          App.showAlert(err.message, 'danger');
+        }
+      });
+
+      document.getElementById('editUserForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const old_user_id = document.getElementById('edit_target_user_id').value;
+        const new_user_id = document.getElementById('edit_user_id').value;
+        const full_name = document.getElementById('edit_full_name').value;
+        const email = document.getElementById('edit_email').value;
+        const phone = document.getElementById('edit_phone').value;
+        const role = document.getElementById('edit_role').value;
+        const status = document.getElementById('edit_status').value;
+        const password = document.getElementById('edit_password').value;
+
+        try {
+          const payload = { new_user_id, full_name, email, phone, role, status };
+          if (password) payload.password = password;
+
+          const res = await API.updateUserDetails(old_user_id, payload);
+          if (res.success) {
+            App.showAlert(res.message, 'success');
+            closeEditModal();
+            loadUsers();
+          }
+        } catch (err) {
+          App.showAlert(err.message, 'danger');
+        }
+      });
+    });
+
+    async function loadUsers() {
+      const search = document.getElementById('userSearchInput').value;
+      const status = document.getElementById('userStatusSelect').value;
+      const tbody = document.getElementById('usersTableBody');
+
+      try {
+        const res = await API.getAdminUsers(search, status);
+        if (!res.success) throw new Error(res.message);
+
+        if (!res.users || res.users.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-dim);">No users found.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = res.users.map(u => {
+          const isBlockedLate = u.status === 'blocked_late';
+          const isActive = u.status === 'active';
+          
+          let statusBadge = '<span class="badge badge-danger">INACTIVE</span>';
+          if (isBlockedLate) {
+            statusBadge = '<span class="badge badge-danger" style="background: rgba(239,68,68,0.2); border: 1px solid var(--danger);">🔴 BLOCKED (LATE)</span>';
+          } else if (isActive) {
+            statusBadge = '<span class="badge badge-success">ACTIVE</span>';
+          }
+
+          const pct = u.attendance_percentage !== undefined ? u.attendance_percentage : 0;
+          let pctBadgeClass = 'badge-danger';
+          if (pct >= 75) pctBadgeClass = 'badge-success';
+          else if (pct >= 50) pctBadgeClass = 'badge-warning';
+
+          const attendanceBadge = `<span class="badge ${pctBadgeClass}">${pct}% (${u.present_days || 0}/${u.total_working_days || 1}d)</span>`;
+
+          const safeUserId = encodeURIComponent(u.user_id);
+          const safeFullName = encodeURIComponent(u.full_name || '');
+          const safeEmail = encodeURIComponent(u.email || '');
+          const safePhone = encodeURIComponent(u.phone || '');
+          const safeRole = encodeURIComponent(u.role || 'user');
+          const safeStatus = encodeURIComponent(u.status || 'active');
+
+          const editBtn = `<button onclick="handleEditClick(this)" data-userid="${safeUserId}" data-fullname="${safeFullName}" data-email="${safeEmail}" data-phone="${safePhone}" data-role="${safeRole}" data-status="${safeStatus}" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;">✏️ Edit</button>`;
+
+          const registerPasskeyBtn = `<button onclick="handlePasskeyClick(this)" data-userid="${safeUserId}" data-fullname="${safeFullName}" class="btn btn-primary" style="width:auto; padding:4px 8px; font-size:0.75rem;">☝️ Passkey</button>`;
+
+          const unblockLateBtn = isBlockedLate
+            ? `<button onclick="unblockLateUser('${u.user_id}')" class="btn btn-warning" style="width:auto; padding:4px 8px; font-size:0.75rem;">🔓 Unblock Late</button>`
+            : '';
+
+          const toggleActionBtn = isActive
+            ? `<button onclick="toggleStatus('${u.user_id}', 'inactive')" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;">Deactivate</button>`
+            : `<button onclick="toggleStatus('${u.user_id}', 'active')" class="btn btn-success" style="width:auto; padding:4px 8px; font-size:0.75rem;">Activate</button>`;
+
+          const deleteBtn = u.user_id !== 'admin'
+            ? `<button onclick="deleteAccount('${u.user_id}')" class="btn btn-danger" style="width:auto; padding:4px 8px; font-size:0.75rem;">Delete</button>`
+            : '';
+
+          return `
+            <tr>
+              <td><strong>${u.user_id}</strong></td>
+              <td>${u.full_name}</td>
+              <td>${u.email}</td>
+              <td>${u.phone}</td>
+              <td>${statusBadge}</td>
+              <td>${u.credential_count > 0 ? `🟢 ${u.credential_count} key(s)` : '🔴 None'}</td>
+              <td>${attendanceBadge}</td>
+              <td>
+                <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                  ${unblockLateBtn}
+                  ${editBtn}
+                  ${registerPasskeyBtn}
+                  ${toggleActionBtn}
+                  ${deleteBtn}
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        App.showAlert(err.message, 'danger');
+      }
+    }
+
+    function handleEditClick(btn) {
+      const user_id = decodeURIComponent(btn.dataset.userid);
+      const full_name = decodeURIComponent(btn.dataset.fullname);
+      const email = decodeURIComponent(btn.dataset.email);
+      const phone = decodeURIComponent(btn.dataset.phone);
+      const role = decodeURIComponent(btn.dataset.role);
+      const status = decodeURIComponent(btn.dataset.status);
+      openEditUserModal(user_id, full_name, email, phone, role, status);
+    }
+
+    function handlePasskeyClick(btn) {
+      const user_id = decodeURIComponent(btn.dataset.userid);
+      const full_name = decodeURIComponent(btn.dataset.fullname);
+      registerUserPasskey(user_id, full_name);
+    }
+
+    function openEditUserModal(user_id, full_name, email, phone, role, status) {
+      document.getElementById('edit_target_user_id').value = user_id;
+      document.getElementById('edit_user_id').value = user_id;
+      document.getElementById('edit_full_name').value = full_name;
+      document.getElementById('edit_email').value = email;
+      document.getElementById('edit_phone').value = phone || '';
+      document.getElementById('edit_role').value = role || 'user';
+      document.getElementById('edit_status').value = status || 'active';
+      document.getElementById('edit_password').value = '';
+
+      const userIdInput = document.getElementById('edit_user_id');
+      if (user_id === 'admin') {
+        userIdInput.disabled = true;
+        userIdInput.title = "Default system admin User ID cannot be changed.";
+      } else {
+        userIdInput.disabled = false;
+        userIdInput.title = "";
+      }
+      
+      const modal = document.getElementById('editUserModal');
+      modal.classList.add('active');
+    }
+
+    function closeEditModal() {
+      const modal = document.getElementById('editUserModal');
+      modal.classList.remove('active');
+    }
+
+    async function registerUserPasskey(user_id, full_name) {
+      try {
+        App.showAlert(`Generating fingerprint registration challenge for ${full_name} (${user_id})...`, 'info');
+        const optRes = await API.getWebAuthnRegisterOptions(user_id);
+        
+        if (!optRes.success) {
+          throw new Error(optRes.message || 'Failed to get WebAuthn registration options.');
+        }
+
+        App.showAlert(`Please scan Fingerprint / Face ID for ${full_name} on your device...`, 'info');
+        const credential = await WebAuthnService.registerPasskey(optRes.options);
+
+        App.showAlert('Verifying biometric credential on server...', 'info');
+        const verifyRes = await API.verifyWebAuthnRegister(credential, `${full_name} Device Passkey`);
+
+        if (verifyRes.success) {
+          App.showAlert(`🎉 Biometric passkey registered successfully for ${full_name}!`, 'success');
+          loadUsers();
+        }
+      } catch (err) {
+        App.showAlert(`Fingerprint registration failed: ${err.message}`, 'danger');
+      }
+    }
+
+    async function unblockLateUser(user_id) {
+      if (!confirm(`Are you sure you want to unblock user "${user_id}" and approve their Late In-Time Permission?`)) return;
+      try {
+        const res = await API.adminUnblockLateUser(user_id);
+        if (res.success) {
+          App.showAlert(res.message, 'success');
+          loadUsers();
+        }
+      } catch (e) {
+        App.showAlert(e.message, 'danger');
+      }
+    }
+
+    async function toggleStatus(user_id, new_status) {
+      try {
+        const res = await API.updateUserStatus(user_id, new_status);
+        if (res.success) {
+          App.showAlert(res.message, 'success');
+          loadUsers();
+        }
+      } catch (e) {
+        App.showAlert(e.message, 'danger');
+      }
+    }
+
+    async function deleteAccount(user_id) {
+      if (!confirm(`Are you sure you want to permanently delete user "${user_id}"?`)) return;
+
+      try {
+        const res = await API.deleteUser(user_id);
+        if (res.success) {
+          App.showAlert(res.message, 'success');
+          loadUsers();
+        }
+      } catch (e) {
+        App.showAlert(e.message, 'danger');
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Login — GeoBio Auth</title>
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0d1117">
+  <link rel="stylesheet" href="/css/main.css">
+  <link rel="stylesheet" href="/css/components.css">
+</head>
+<body>
+
+  <header class="top-header">
+    <a href="/" class="brand">
+      <div class="brand-icon">🔑</div>
+      <span>GeoBio Login</span>
+    </a>
+    <div id="topUserBadge" class="user-badge">Guest</div>
+  </header>
+
+  <main class="app-container">
+    <div id="alertContainer"></div>
+
+    <div class="card">
+      <h2 class="card-title">Sign In to Your Account</h2>
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 20px;">
+        Use your registered User ID or Email to sign in.
+      </p>
+
+      <form id="loginForm">
+        <div class="form-group">
+          <label class="form-label" for="user_id">User ID or Email</label>
+          <input type="text" id="user_id" class="form-input" placeholder="e.g. student01 or admin" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="password">Password</label>
+          <input type="password" id="password" class="form-input" placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="margin-top: 10px;">
+          Login to Account
+        </button>
+      </form>
+
+      <div style="margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--card-border); text-align: center;">
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">or authenticate using device biometric</div>
+        <a href="/authenticate.html" class="btn btn-success">
+          ☝️ Biometric Passkey Login
+        </a>
+      </div>
+
+      <div style="margin-top: 16px; text-align: center; font-size: 0.85rem;">
+        Don't have an account? <a href="/register.html" style="color: var(--primary);">Register here</a>
+      </div>
+    </div>
+  </main>
+
+  <nav class="bottom-nav">
+    <a href="/index.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </a>
+    <a href="/authenticate.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
+
+      <span>Authenticate</span>
+    </a>
+    <a href="/dashboard.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+      <span>Dashboard</span>
+    </a>
+    <a href="/history.html" class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13 3a9 9 0 00-9 9H1l3.89 3.89.07.14L9 12H6a7 7 0 117 7 7.07 7.07 0 01-6-3.44l-1.42 1.42A8.95 8.95 0 0013 21a9 9 0 000-18zm-1 5v5l4.25 2.52.77-1.28-3.52-2.09V8z"/></svg>
+      <span>History</span>
+    </a>
+  </nav>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/app.js"></script>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const user_id = document.getElementById('user_id').value;
+      const password = document.getElementById('password').value;
+
+      try {
+        const res = await API.loginUser({ user_id, password });
+        if (res.success) {
+          App.showAlert('Login successful! Redirecting...', 'success');
+          setTimeout(() => {
+            if (res.user.role === 'admin') {
+              window.location.href = '/admin.html';
+            } else {
+              window.location.href = '/dashboard.html';
+            }
+          }, 1000);
+        }
+      } catch (err) {
+        App.showAlert(err.message, 'danger');
+      }
+    });
+  </script>
+</body>
+</html>
