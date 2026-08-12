@@ -20,3 +20,7 @@ Thumbs.db
 
 # Antigravity artifacts
 .gemini/
+.mingit/
+scratch/
+*.zip
+
