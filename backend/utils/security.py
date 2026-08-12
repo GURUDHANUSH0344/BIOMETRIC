@@ -1,5 +1,7 @@
 from functools import wraps
+# pyrefly: ignore [missing-import]
 from flask import session, jsonify, request
+# pyrefly: ignore [missing-import]
 from werkzeug.security import generate_password_hash, check_password_hash
 
 def hash_password(password: str) -> str:
