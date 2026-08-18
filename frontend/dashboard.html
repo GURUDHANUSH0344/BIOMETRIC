@@ -192,23 +192,6 @@
       return `${formattedHours}:${minutes}:${seconds} ${ampm}`;
     }
 
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        const res = await API.getCurrentUser();
-        if (!res.authenticated || !res.user) {
-          window.location.href = '/login.html';
-          return;
-        }
-
-        const user = res.user;
-        document.getElementById('welcomeHeading').textContent = `Welcome, ${user.full_name}`;
-        document.getElementById('userSubtitle').textContent = `User ID: ${user.user_id} | Email: ${user.email}`;
-
-        const passkeyStat = document.getElementById('statPasskeyStatus');
-        if (passkeyStat) {
-          passkeyStat.textContent = 'Active ✓';
-          passkeyStat.style.color = 'var(--success)';
-        }
 
     async function loadDashboardData() {
       try {
