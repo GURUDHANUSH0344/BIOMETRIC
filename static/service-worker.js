@@ -1,4 +1,4 @@
-const CACHE_NAME = 'fxec-biometric-app-shell-v1';
+const CACHE_NAME = 'fxec-biometric-app-shell-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -7,6 +7,11 @@ const ASSETS = [
   '/dashboard.html',
   '/authenticate.html',
   '/history.html',
+  '/users.html',
+  '/admin.html',
+  '/location.html',
+  '/logs.html',
+  '/late_form.html',
   '/privacy.html',
   '/css/main.css',
   '/css/components.css',
@@ -14,13 +19,14 @@ const ASSETS = [
   '/js/api.js',
   '/js/geo.js',
   '/js/webauthn.js',
+  '/js/admin.js',
   '/manifest.json'
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching App Shell');
+      console.log('[Service Worker] Caching App Shell v2');
       return cache.addAll(ASSETS);
     })
   );
@@ -33,7 +39,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
-            console.log('[Service Worker] Removing old cache:', key);
+            console.log('[Service Worker] Purging old cache:', key);
             return caches.delete(key);
           }
         })
@@ -44,22 +50,42 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Do not cache API endpoints (always fetch live for security)
+  // Never cache API endpoints (always live for security & data accuracy)
   if (event.request.url.includes('/api/')) {
     return;
   }
 
+  // Network-First for JS, CSS, and HTML so updates are instantly loaded
+  if (
+    event.request.url.includes('/js/') ||
+    event.request.url.includes('/css/') ||
+    event.request.headers.get('accept')?.includes('text/html')
+  ) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          return caches.match(event.request);
+        })
+    );
+    return;
+  }
+
+  // Cache-First for other static assets (images, icons, fonts)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       if (cachedResponse) {
         return cachedResponse;
       }
-      return fetch(event.request).catch(() => {
-        // Return offline fallback if network fails
-        if (event.request.headers.get('accept').includes('text/html')) {
-          return caches.match('/index.html');
-        }
-      });
+      return fetch(event.request);
     })
   );
 });
