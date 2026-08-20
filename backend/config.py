@@ -1,4 +1,5 @@
 import os
+import urllib.parse
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -9,14 +10,31 @@ if env_path.exists():
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+def sanitize_database_url(url: str) -> str:
+    """Sanitizes and URL-encodes special characters in database URL passwords."""
+    if not url:
+        return None
+    url = url.strip()
+    if url.startswith("postgres://"):
+        url = url.replace("postgres://", "postgresql://", 1)
+        
+    # Handle passwords with special characters (@, #, :, etc.)
+    if '://' in url:
+        scheme, rest = url.split('://', 1)
+        if '@' in rest:
+            userinfo, hostinfo = rest.rsplit('@', 1)
+            if ':' in userinfo:
+                username, password = userinfo.split(':', 1)
+                raw_password = urllib.parse.unquote(password)
+                encoded_password = urllib.parse.quote_plus(raw_password)
+                return f"{scheme}://{username}:{encoded_password}@{hostinfo}"
+    return url
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "geofence_biometric_super_secret_key_change_in_production_2026")
     
     # Database Configuration (Supabase / PostgreSQL / SQLite)
-    DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL") or os.getenv("POSTGRES_URL")
-    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-        
+    DATABASE_URL = sanitize_database_url(os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL") or os.getenv("POSTGRES_URL"))
     DATABASE_PATH = os.getenv("DATABASE_PATH", str(BASE_DIR / "database" / "geofence_bio.db"))
     
     # MySQL Configuration (Legacy)
