@@ -137,6 +137,58 @@
       </div>
     </div>
 
+    <!-- My Passkeys Card -->
+    <div class="card" id="myPasskeysCard" style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
+        <div class="card-title" style="margin-bottom: 0;">🔐 My Passkeys</div>
+        <button id="btnRegisterPasskey" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 6px 14px;">
+          ➕ Register New Passkey
+        </button>
+      </div>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">
+        Manage the devices authorized for biometric authentication.
+      </p>
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Credential Name</th>
+              <th>Created On</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="myPasskeysTbody">
+            <tr>
+              <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 12px;">
+                Loading passkeys...
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- My Profile & Security Card -->
+    <div class="card" style="margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div class="card-title" style="margin-bottom: 0;">👤 My Profile & Security</div>
+        <button id="btnEditProfile" onclick="openProfileModal()" class="btn btn-secondary" style="width: auto; font-size: 0.82rem; padding: 6px 12px;">
+          ✏️ Edit Profile
+        </button>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; font-size: 0.88rem; background: rgba(0,0,0,0.2); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--card-border);">
+        <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">FULL NAME</span><strong id="profName">-</strong></div>
+        <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">USER ID / ROLL NO</span><strong id="profUserId">-</strong></div>
+        <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">EMAIL</span><strong id="profEmail">-</strong></div>
+        <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">PHONE</span><strong id="profPhone">-</strong></div>
+      </div>
+      <div style="margin-top: 12px;">
+        <button onclick="openChangePasswordModal()" class="btn btn-secondary" style="width: 100%; font-size: 0.88rem; padding: 10px;">
+          🔑 Change Account Password
+        </button>
+      </div>
+    </div>
+
     <!-- Action Shortcuts -->
     <div class="card">
       <div class="card-title">🚀 Quick Actions</div>
@@ -154,6 +206,58 @@
     </div>
   </main>
 
+  <!-- Edit Profile Modal -->
+  <div id="profileModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header">
+        <h3 class="card-title" style="margin-bottom: 0;">✏️ Edit My Profile</h3>
+        <button type="button" onclick="closeProfileModal()" class="modal-close">✕</button>
+      </div>
+      <form id="editProfileForm">
+        <div class="form-group">
+          <label class="form-label" for="my_full_name">Full Name *</label>
+          <input type="text" id="my_full_name" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="my_email">Email Address *</label>
+          <input type="email" id="my_email" class="form-input" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="my_phone">Phone Number *</label>
+          <input type="tel" id="my_phone" class="form-input" required>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px;">
+          <button type="button" onclick="closeProfileModal()" class="btn btn-secondary" style="width: auto;">Cancel</button>
+          <button type="submit" id="btnSaveProfile" class="btn btn-success" style="width: auto;">💾 Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Change Password Modal -->
+  <div id="changePasswordModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="card-title" style="margin-bottom: 0;">🔑 Change Password</h3>
+        <button type="button" onclick="closeChangePasswordModal()" class="modal-close">✕</button>
+      </div>
+      <form id="changePasswordForm">
+        <div class="form-group">
+          <label class="form-label" for="my_current_password">Current Password *</label>
+          <input type="password" id="my_current_password" class="form-input" placeholder="Enter current password" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="my_new_password">New Password *</label>
+          <input type="password" id="my_new_password" class="form-input" placeholder="Enter new password (min 6 chars)" minlength="6" required>
+        </div>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px;">
+          <button type="button" onclick="closeChangePasswordModal()" class="btn btn-secondary" style="width: auto;">Cancel</button>
+          <button type="submit" id="btnSavePassword" class="btn btn-success" style="width: auto;">💾 Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <nav class="bottom-nav">
     <a href="/index.html" class="nav-item">
       <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
@@ -161,7 +265,6 @@
     </a>
     <a href="/authenticate.html" class="nav-item">
       <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-5.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/></svg>
-
       <span>Authenticate</span>
     </a>
     <a href="/dashboard.html" class="nav-item active">
@@ -175,8 +278,11 @@
   </nav>
 
   <script src="/js/api.js"></script>
+  <script src="/js/webauthn.js"></script>
   <script src="/js/app.js"></script>
   <script>
+    let activeUser = null;
+
     function formatTime(tsStr) {
       if (!tsStr) return '--';
       const parts = tsStr.split(' ');
@@ -192,6 +298,44 @@
       return `${formattedHours}:${minutes}:${seconds} ${ampm}`;
     }
 
+    async function loadMyPasskeys() {
+      try {
+        const res = await API.getUserCredentials();
+        const tbody = document.getElementById('myPasskeysTbody');
+        if (res.success && res.credentials) {
+          if (res.credentials.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-dim); padding: 12px;">No passkeys registered.</td></tr>';
+            return;
+          }
+          tbody.innerHTML = res.credentials.map(c => `
+            <tr>
+              <td><strong>${escapeHtml(c.credential_name || 'Passkey')}</strong></td>
+              <td>${c.created_at || '--'}</td>
+              <td>
+                <button onclick="deleteMyPasskey('${escapeAttr(c.credential_id)}')" class="btn btn-danger" style="width:auto; padding:4px 8px; font-size:0.75rem;">🗑️ Delete</button>
+              </td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {
+        console.error('Error fetching passkeys:', e);
+      }
+    }
+
+    async function deleteMyPasskey(credential_id) {
+      if (!confirm('Are you sure you want to delete this passkey?')) return;
+      try {
+        const res = await API.deleteUserCredential(credential_id);
+        if (res.success) {
+          App.showAlert('Passkey deleted.', 'success');
+          loadMyPasskeys();
+        } else {
+          App.showAlert(res.message, 'danger');
+        }
+      } catch (e) {
+        App.showAlert(e.message, 'danger');
+      }
+    }
 
     async function loadDashboardData() {
       try {
@@ -232,20 +376,20 @@
                 const inTimeFormatted = isAbsent ? '<span style="color: var(--danger); font-weight: 600;">🔴 Not Punched</span>' : `<span style="color: var(--success); font-weight: 600;">🟢 ${formatTime(ds.punch_in)}</span>`;
                 const outTimeFormatted = isAbsent ? '--' : (ds.punch_out ? formatTime(ds.punch_out) : 'Pending Out');
                 const duration = isAbsent ? '0h 0m' : (ds.duration ? ds.duration : '--');
-                
+
                 let statusBadge = '<span class="badge badge-danger">🔴 ABSENT</span>';
                 if (!isAbsent) {
-                  statusBadge = ds.punch_out 
+                  statusBadge = ds.punch_out
                     ? '<span class="badge badge-success">COMPLETED (IN & OUT)</span>'
                     : '<span class="badge badge-warning">IN ONLY</span>';
                 }
 
                 return `
                   <tr>
-                    <td><strong>${ds.date}</strong></td>
+                    <td><strong>${escapeHtml(ds.date)}</strong></td>
                     <td>${inTimeFormatted}</td>
                     <td>${ds.punch_out ? `<span style="color: var(--danger); font-weight: 600;">🔴 ${outTimeFormatted}</span>` : `<span style="color: var(--text-dim);">${outTimeFormatted}</span>`}</td>
-                    <td>⏱️ ${duration}</td>
+                    <td>⏱️ ${escapeHtml(duration)}</td>
                     <td>${statusBadge}</td>
                   </tr>
                 `;
@@ -268,7 +412,7 @@
 
                 return `
                   <tr>
-                    <td><strong>${ds.date}</strong></td>
+                    <td><strong>${escapeHtml(ds.date)}</strong></td>
                     ${pCells}
                   </tr>
                 `;
@@ -289,6 +433,27 @@
       }
     }
 
+    function openProfileModal() {
+      if (!activeUser) return;
+      document.getElementById('my_full_name').value = activeUser.full_name || '';
+      document.getElementById('my_email').value = activeUser.email || '';
+      document.getElementById('my_phone').value = activeUser.phone || '';
+      document.getElementById('profileModal').classList.add('active');
+    }
+
+    function closeProfileModal() {
+      document.getElementById('profileModal').classList.remove('active');
+    }
+
+    function openChangePasswordModal() {
+      document.getElementById('changePasswordForm').reset();
+      document.getElementById('changePasswordModal').classList.add('active');
+    }
+
+    function closeChangePasswordModal() {
+      document.getElementById('changePasswordModal').classList.remove('active');
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
       try {
         const res = await API.getCurrentUser();
@@ -297,9 +462,15 @@
           return;
         }
 
-        const user = res.user;
-        document.getElementById('welcomeHeading').textContent = `Welcome, ${user.full_name}`;
-        document.getElementById('userSubtitle').textContent = `User ID: ${user.user_id} | Email: ${user.email}`;
+        activeUser = res.user;
+        document.getElementById('welcomeHeading').textContent = `Welcome, ${activeUser.full_name}`;
+        document.getElementById('userSubtitle').textContent = `User ID: ${activeUser.user_id} | Email: ${activeUser.email}`;
+
+        // Populate Profile Card
+        document.getElementById('profName').textContent = activeUser.full_name;
+        document.getElementById('profUserId').textContent = activeUser.user_id;
+        document.getElementById('profEmail').textContent = activeUser.email;
+        document.getElementById('profPhone').textContent = activeUser.phone || '--';
 
         const passkeyStat = document.getElementById('statPasskeyStatus');
         if (passkeyStat) {
@@ -309,6 +480,81 @@
 
         // Initial Load
         await loadDashboardData();
+        await loadMyPasskeys();
+
+        document.getElementById('btnRegisterPasskey').addEventListener('click', async () => {
+          try {
+            App.showAlert('Requesting passkey registration options...', 'info');
+            const optRes = await API.getWebAuthnRegisterOptions();
+            if (!optRes.success) throw new Error(optRes.message);
+
+            App.showAlert('Please scan your fingerprint or face...', 'info');
+            const credential = await WebAuthnService.registerPasskey(optRes.options);
+
+            App.showAlert('Verifying passkey...', 'info');
+            const verifyRes = await API.verifyWebAuthnRegister(credential, 'My Device Passkey');
+            if (verifyRes.success) {
+              App.showAlert('Passkey registered successfully!', 'success');
+              loadMyPasskeys();
+            }
+          } catch (e) {
+            App.showAlert('Registration failed: ' + e.message, 'danger');
+          }
+        });
+
+        // Edit Profile Form Submission
+        document.getElementById('editProfileForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const full_name = document.getElementById('my_full_name').value.trim();
+          const email = document.getElementById('my_email').value.trim();
+          const phone = document.getElementById('my_phone').value.trim();
+
+          const btn = document.getElementById('btnSaveProfile');
+          btn.disabled = true;
+          btn.textContent = 'Saving...';
+
+          try {
+            const res = await API.updateOwnProfile({ full_name, email, phone });
+            if (res.success) {
+              App.showAlert(res.message, 'success');
+              activeUser = res.user;
+              document.getElementById('welcomeHeading').textContent = `Welcome, ${activeUser.full_name}`;
+              document.getElementById('profName').textContent = activeUser.full_name;
+              document.getElementById('profEmail').textContent = activeUser.email;
+              document.getElementById('profPhone').textContent = activeUser.phone;
+              closeProfileModal();
+            }
+          } catch (err) {
+            App.showAlert(err.message, 'danger');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '💾 Save Profile';
+          }
+        });
+
+        // Change Password Form Submission
+        document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const current_password = document.getElementById('my_current_password').value;
+          const new_password = document.getElementById('my_new_password').value;
+
+          const btn = document.getElementById('btnSavePassword');
+          btn.disabled = true;
+          btn.textContent = 'Updating...';
+
+          try {
+            const res = await API.changeOwnPassword(current_password, new_password);
+            if (res.success) {
+              App.showAlert(res.message, 'success');
+              closeChangePasswordModal();
+            }
+          } catch (err) {
+            App.showAlert(err.message, 'danger');
+          } finally {
+            btn.disabled = false;
+            btn.textContent = '💾 Update Password';
+          }
+        });
 
         // Start Live Auto-Refresh every 10 seconds
         setInterval(loadDashboardData, 10000);
@@ -320,6 +566,8 @@
             btnRefresh.disabled = true;
             btnRefresh.textContent = '🔄 Syncing...';
             await loadDashboardData();
+            await loadMyPasskeys();
+
             setTimeout(() => {
               btnRefresh.disabled = false;
               btnRefresh.textContent = '🔄 Refresh';
@@ -335,6 +583,16 @@
         window.location.href = '/login.html';
       });
     });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    function escapeAttr(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
+    }
   </script>
 </body>
 </html>

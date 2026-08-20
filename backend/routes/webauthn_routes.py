@@ -281,3 +281,28 @@ def login_verify():
             ip_address=request.remote_addr, user_agent=request.user_agent.string
         )
         return jsonify({'success': False, 'message': f'Biometric verification failed: {str(e)}'}), 400
+
+
+@webauthn_bp.route('/credentials', methods=['GET'])
+def get_user_credentials():
+    """Returns registered passkeys for the logged in user."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    creds = get_credentials_by_user(user_id)
+    return jsonify({'success': True, 'credentials': creds})
+
+@webauthn_bp.route('/credentials/<credential_id>', methods=['DELETE'])
+def delete_user_credential(credential_id):
+    """Deletes a passkey for the logged in user."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    
+    from backend.models.schemas import delete_credential
+    success = delete_credential(user_id, credential_id)
+    if success:
+        return jsonify({'success': True, 'message': 'Passkey removed successfully.'})
+    else:
+        return jsonify({'success': False, 'message': 'Passkey not found or you do not have permission to delete it.'}), 404

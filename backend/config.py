@@ -13,6 +13,12 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "geofence_biometric_super_secret_key_change_in_production_2026")
     DATABASE_PATH = os.getenv("DATABASE_PATH", str(BASE_DIR / "database" / "geofence_bio.db"))
     
+    # MySQL Configuration
+    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
+    MYSQL_USER = os.getenv("MYSQL_USER", "root")
+    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
+    MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "fxec_biometric")
+    
     # WebAuthn Configuration
     WEBAUTHN_RP_ID = os.getenv("WEBAUTHN_RP_ID", "localhost")
     WEBAUTHN_RP_NAME = os.getenv("WEBAUTHN_RP_NAME", "FXEC BIOMETRIC Auth System")

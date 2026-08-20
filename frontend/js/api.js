@@ -67,6 +67,10 @@ const API = {
     return this.request('/me', { method: 'PUT', body: profileData });
   },
 
+  changeOwnPassword(current_password, new_password) {
+    return this.request('/me/change-password', { method: 'POST', body: { current_password, new_password } });
+  },
+
   getUserHistory() {
     return this.request('/user/history', { method: 'GET' });
   },
@@ -106,11 +110,17 @@ const API = {
     return this.request('/admin/dashboard', { method: 'GET' });
   },
 
-  getAdminUsers(search, status) {
+  getAdminUsers(search, status, role, sort_by) {
     const params = new URLSearchParams();
     if (search) params.append('search', search);
-    if (status) params.append('status', status);
+    if (status && status !== 'all') params.append('status', status);
+    if (role && role !== 'all') params.append('role', role);
+    if (sort_by) params.append('sort_by', sort_by);
     return this.request(`/admin/users?${params.toString()}`, { method: 'GET' });
+  },
+
+  getAdminUserDetails(user_id) {
+    return this.request(`/admin/users/${encodeURIComponent(user_id)}`, { method: 'GET' });
   },
 
   adminCreateUser(userData) {
@@ -118,15 +128,19 @@ const API = {
   },
 
   updateUserStatus(user_id, status) {
-    return this.request(`/admin/users/${user_id}/status`, { method: 'POST', body: { status } });
+    return this.request(`/admin/users/${encodeURIComponent(user_id)}/status`, { method: 'POST', body: { status } });
   },
 
   updateUserDetails(user_id, userData) {
-    return this.request(`/admin/users/${user_id}`, { method: 'PUT', body: userData });
+    return this.request(`/admin/users/${encodeURIComponent(user_id)}`, { method: 'PUT', body: userData });
+  },
+
+  adminResetUserPassword(user_id, new_password) {
+    return this.request(`/admin/users/${encodeURIComponent(user_id)}/reset-password`, { method: 'POST', body: { new_password } });
   },
 
   deleteUser(user_id) {
-    return this.request(`/admin/users/${user_id}`, { method: 'DELETE' });
+    return this.request(`/admin/users/${encodeURIComponent(user_id)}`, { method: 'DELETE' });
   },
 
   saveGeofenceSettings(settings) {
@@ -160,5 +174,22 @@ const API = {
 
   adminGetLateRequests() {
     return this.request('/admin/late-requests', { method: 'GET' });
+  },
+
+  // Credential Management Endpoints
+  getUserCredentials() {
+    return this.request('/webauthn/credentials', { method: 'GET' });
+  },
+
+  deleteUserCredential(credential_id) {
+    return this.request(`/webauthn/credentials/${encodeURIComponent(credential_id)}`, { method: 'DELETE' });
+  },
+
+  getAdminUserCredentials(user_id) {
+    return this.request(`/admin/users/${encodeURIComponent(user_id)}/credentials`, { method: 'GET' });
+  },
+
+  adminDeleteUserCredential(user_id, credential_id) {
+    return this.request(`/admin/users/${encodeURIComponent(user_id)}/credentials/${encodeURIComponent(credential_id)}`, { method: 'DELETE' });
   }
 };

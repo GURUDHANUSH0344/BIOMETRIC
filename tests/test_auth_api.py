@@ -216,6 +216,95 @@ def test_admin_user_editing_validation_and_status(client):
     delete_user('student04')
     delete_user('student05')
 
+def test_admin_user_full_details_and_password_reset(client):
+    delete_user('detail_user')
+
+    # Admin Login & Create user
+    client.post('/api/login', json={'user_id': 'admin', 'password': 'Admin@123456'})
+    client.post('/api/admin/users', json={
+        'user_id': 'detail_user',
+        'full_name': 'Detail User Test',
+        'email': 'detail_user@example.com',
+        'phone': '+1999222333',
+        'password': 'InitialPassword@123'
+    })
+
+    # Fetch full user details
+    detail_resp = client.get('/api/admin/users/detail_user')
+    assert detail_resp.status_code == 200
+    assert detail_resp.json['success'] is True
+    data = detail_resp.json['data']
+    assert data['user']['user_id'] == 'detail_user'
+    assert 'credentials' in data
+    assert 'attendance_stats' in data
+    assert 'today_punch' in data
+    assert 'recent_logs' in data
+
+    # Admin resets user password
+    reset_resp = client.post('/api/admin/users/detail_user/reset-password', json={
+        'new_password': 'AdminAssignedPassword@789'
+    })
+    assert reset_resp.status_code == 200
+    assert reset_resp.json['success'] is True
+
+    # User can login with newly assigned password
+    client.post('/api/logout')
+    login_resp = client.post('/api/login', json={
+        'user_id': 'detail_user',
+        'password': 'AdminAssignedPassword@789'
+    })
+    assert login_resp.status_code == 200
+
+    # User changes own password
+    change_resp = client.post('/api/me/change-password', json={
+        'current_password': 'AdminAssignedPassword@789',
+        'new_password': 'UserNewPassword@999'
+    })
+    assert change_resp.status_code == 200
+    assert change_resp.json['success'] is True
+
+    # Cleanup
+    delete_user('detail_user')
+
+def test_admin_user_filtering_and_sorting(client):
+    delete_user('sort_user_a')
+    delete_user('sort_user_b')
+
+    # Admin Login
+    client.post('/api/login', json={'user_id': 'admin', 'password': 'Admin@123456'})
+
+    client.post('/api/admin/users', json={
+        'user_id': 'sort_user_a',
+        'full_name': 'Alpha User',
+        'email': 'alpha@example.com',
+        'phone': '+1111111111',
+        'role': 'user'
+    })
+    client.post('/api/admin/users', json={
+        'user_id': 'sort_user_b',
+        'full_name': 'Beta Admin',
+        'email': 'beta@example.com',
+        'phone': '+2222222222',
+        'role': 'admin'
+    })
+
+    # Filter by role admin
+    role_resp = client.get('/api/admin/users?role=admin')
+    assert role_resp.status_code == 200
+    admin_ids = [u['user_id'] for u in role_resp.json['users']]
+    assert 'sort_user_b' in admin_ids
+    assert 'sort_user_a' not in admin_ids
+
+    # Search by keyword
+    search_resp = client.get('/api/admin/users?search=Alpha')
+    assert search_resp.status_code == 200
+    assert len(search_resp.json['users']) == 1
+    assert search_resp.json['users'][0]['user_id'] == 'sort_user_a'
+
+    # Cleanup
+    delete_user('sort_user_a')
+    delete_user('sort_user_b')
+
 def test_user_self_profile_editing(client):
     delete_user('student06')
 

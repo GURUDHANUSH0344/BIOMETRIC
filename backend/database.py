@@ -11,9 +11,10 @@ def get_db_connection(db_path=None):
     db_file = Path(db_path)
     db_file.parent.mkdir(parents=True, exist_ok=True)
     
-    conn = sqlite3.connect(str(db_file), timeout=10.0)
+    conn = sqlite3.connect(str(db_file), timeout=15.0)
     conn.row_factory = sqlite3.Row
-    # Enable foreign key support in SQLite
+    # Enable WAL mode for better concurrency and foreign keys
+    conn.execute("PRAGMA journal_mode = WAL;")
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
@@ -94,7 +95,7 @@ def init_db(db_path=None):
         user_id TEXT NOT NULL,
         date TEXT NOT NULL,
         in_time TEXT NOT NULL,
-        reason TEXT NOT NULL DEFAULT 'Awaiting reason input',
+        reason TEXT,
         status TEXT NOT NULL DEFAULT 'PENDING_APPROVAL',
         approved_by TEXT,
         approved_at TIMESTAMP,
@@ -120,4 +121,5 @@ def init_db(db_path=None):
         ))
         conn.commit()
 
+    cursor.close()
     conn.close()

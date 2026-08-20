@@ -2,12 +2,67 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>User Management — FXEC BIOMETRIC</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0d1117">
   <link rel="stylesheet" href="/css/main.css">
   <link rel="stylesheet" href="/css/components.css">
+  <style>
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .kpi-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--radius-md);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      transition: var(--transition);
+    }
+    .kpi-card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+      transform: translateY(-2px);
+    }
+    .kpi-val {
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-top: 4px;
+      line-height: 1.1;
+    }
+    .kpi-lbl {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .user-row-name {
+      font-weight: 600;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .user-meta-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .quick-link {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: var(--transition);
+    }
+    .quick-link:hover {
+      color: var(--primary);
+    }
+  </style>
 </head>
 <body>
 
@@ -27,121 +82,211 @@
   <main class="app-container wide">
     <div id="alertContainer"></div>
 
-    <div class="card" style="display: flex; gap: 10px; flex-wrap: wrap; padding: 12px 18px; margin-bottom: 20px;">
-      <a href="/admin.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📊 Overview</a>
-      <a href="/users.html" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">👥 User Management</a>
-      <a href="/location.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📍 Geofence Settings</a>
-      <a href="/logs.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📜 Audit Logs & CSV Export</a>
+    <!-- Navigation Header Bar -->
+    <div class="card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; padding: 12px 18px; margin-bottom: 18px;">
+      <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <a href="/admin.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📊 Overview</a>
+        <a href="/users.html" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">👥 User Management</a>
+        <a href="/location.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📍 Geofence Settings</a>
+        <a href="/logs.html" class="btn btn-secondary" style="width: auto; font-size: 0.85rem; padding: 8px 14px;">📜 Audit Logs & CSV Export</a>
+      </div>
+      <button onclick="openAddUserModal()" class="btn btn-success" style="width: auto; font-size: 0.85rem; padding: 8px 16px;">
+        ➕ Add New User
+      </button>
     </div>
 
-    <div class="card" id="addUserCard" style="margin-bottom: 20px;">
-      <div class="card-title">➕ Add New User (Admin Only)</div>
-      <form id="adminCreateUserForm">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px;">
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="add_user_id">User ID / Roll No</label>
-            <input type="text" id="add_user_id" class="form-input" placeholder="e.g. STU1001" required>
+    <!-- KPI Summary Metrics -->
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <span class="kpi-lbl">Total Registered</span>
+        <div id="kpiTotalUsers" class="kpi-val" style="color: var(--text-main);">0</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-lbl">Active Users</span>
+        <div id="kpiActiveUsers" class="kpi-val" style="color: var(--success);">0</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-lbl">Inactive Users</span>
+        <div id="kpiInactiveUsers" class="kpi-val" style="color: var(--danger);">0</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-lbl">Blocked (Late)</span>
+        <div id="kpiBlockedUsers" class="kpi-val" style="color: var(--warning);">0</div>
+      </div>
+      <div class="kpi-card">
+        <span class="kpi-lbl">Passkeys Enrolled</span>
+        <div id="kpiPasskeysCount" class="kpi-val" style="color: var(--primary);">0</div>
+      </div>
+    </div>
+
+    <!-- Controls & Filters Card -->
+    <div class="card" style="padding: 16px; margin-bottom: 18px;">
+      <div style="display: flex; flex-direction: column; gap: 14px;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+          <!-- Search Input with live debounce -->
+          <div style="flex: 1; min-width: 240px; position: relative;">
+            <input type="text" id="userSearchInput" class="form-input" placeholder="🔍 Search by Name, Roll No / User ID, Email, Phone..." style="padding-left: 14px; padding-right: 32px;">
+            <span id="searchClearBtn" onclick="clearSearch()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: var(--text-muted); display: none;">✕</span>
           </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="add_full_name">Full Name</label>
-            <input type="text" id="add_full_name" class="form-input" placeholder="e.g. Jane Doe" required>
+
+          <!-- Sort Select -->
+          <select id="userSortSelect" class="form-select" style="width: auto; min-width: 170px;">
+            <option value="created_desc">Newest First</option>
+            <option value="name_asc">Name (A-Z)</option>
+            <option value="name_desc">Name (Z-A)</option>
+            <option value="user_id_asc">Roll No / ID (A-Z)</option>
+            <option value="attendance_desc">Attendance % (High-Low)</option>
+            <option value="attendance_asc">Attendance % (Low-High)</option>
+          </select>
+
+          <!-- Refresh Button -->
+          <button id="btnRefreshUsers" onclick="loadUsers()" class="btn btn-secondary" style="width: auto; padding: 11px 14px;" title="Refresh User List">
+            🔄 Refresh
+          </button>
+        </div>
+
+        <!-- Filter Pills Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--card-border); padding-top: 12px;">
+          <!-- Role Filters -->
+          <div class="filter-pills" id="roleFilterPills">
+            <span style="font-size: 0.8rem; color: var(--text-dim); margin-right: 4px;">Role:</span>
+            <span class="filter-pill active" data-role="all">All Roles</span>
+            <span class="filter-pill" data-role="user">Students / Users</span>
+            <span class="filter-pill" data-role="admin">Administrators</span>
           </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="add_email">Email Address</label>
-            <input type="email" id="add_email" class="form-input" placeholder="jane@org.edu" required>
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="add_phone">Phone Number</label>
-            <input type="tel" id="add_phone" class="form-input" placeholder="+1234567890" required>
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="add_password">Initial Password</label>
-            <input type="password" id="add_password" class="form-input" placeholder="Password (or default)" required>
-          </div>
-          <div class="form-group" style="margin-bottom: 0;">
-            <label class="form-label" for="add_role">Role</label>
-            <select id="add_role" class="form-select">
-              <option value="user">User</option>
-              <option value="admin">Administrator</option>
-            </select>
+
+          <!-- Status Filters -->
+          <div class="filter-pills" id="statusFilterPills">
+            <span style="font-size: 0.8rem; color: var(--text-dim); margin-right: 4px;">Status:</span>
+            <span class="filter-pill active" data-status="all">All</span>
+            <span class="filter-pill" data-status="active">🟢 Active</span>
+            <span class="filter-pill" data-status="inactive">🔴 Inactive</span>
+            <span class="filter-pill" data-status="blocked_late">⚠️ Blocked (Late)</span>
           </div>
         </div>
-        <button type="submit" class="btn btn-success" style="margin-top: 14px; width: auto; font-size: 0.9rem; padding: 8px 18px;">
-          ➕ Create User Account
-        </button>
-      </form>
+      </div>
     </div>
 
+    <!-- Users Table Card -->
     <div class="card">
-      <div class="card-title">Registered Accounts</div>
-
-      <!-- Filters & Search Bar -->
-      <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px;">
-        <input type="text" id="userSearchInput" class="form-input" placeholder="Search by name, email, or user ID..." style="flex: 1; min-width: 200px;">
-        <select id="userStatusSelect" class="form-select" style="width: 150px;">
-          <option value="all">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
-        </select>
-        <button id="btnFilterUsers" class="btn btn-primary" style="width: auto;">Search</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <div class="card-title" style="margin-bottom: 0;">
+          <span>Registered Accounts</span>
+          <span id="userCountBadge" class="user-badge" style="margin-left: 8px;">0 Users</span>
+        </div>
       </div>
 
       <div class="table-responsive">
         <table class="data-table">
           <thead>
             <tr>
-              <th>User ID</th>
-              <th>Full Name</th>
-              <th>Email</th>
-              <th>Phone</th>
+              <th>User</th>
+              <th>Roll No / User ID</th>
+              <th>Contact Details</th>
               <th>Status</th>
-              <th>Passkeys</th>
-              <th>Attendance %</th>
-              <th>Actions</th>
+              <th>Biometric Passkeys</th>
+              <th>Attendance Score</th>
+              <th style="text-align: right;">Actions</th>
             </tr>
           </thead>
           <tbody id="usersTableBody">
-            <tr><td colspan="8" style="text-align: center; color: var(--text-dim);">Loading users...</td></tr>
+            <tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 30px;">Loading users...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
-    <!-- Edit User Modal -->
-    <div id="editUserModal" class="modal-overlay">
-      <div class="modal-content card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3 class="card-title" style="margin-bottom: 0;">✏️ Edit User Details</h3>
-          <button type="button" onclick="closeEditModal()" class="btn btn-secondary" style="width: auto; padding: 4px 10px;">✕</button>
+
+  </main>
+
+  <!-- =========================================================================
+       MODALS
+       ========================================================================= -->
+
+  <!-- 1. Add User Modal -->
+  <div id="addUserModal" class="modal-overlay">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 class="card-title" style="margin-bottom: 0;">➕ Add New User Account</h3>
+        <button type="button" onclick="closeModal('addUserModal')" class="modal-close">✕</button>
+      </div>
+
+      <form id="adminCreateUserForm">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
+          <div class="form-group">
+            <label class="form-label" for="add_user_id">Roll Number / User ID *</label>
+            <input type="text" id="add_user_id" class="form-input" placeholder="e.g. 25ADR047 or STU1001" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add_full_name">Full Name *</label>
+            <input type="text" id="add_full_name" class="form-input" placeholder="e.g. Jane Doe" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add_email">Email Address *</label>
+            <input type="email" id="add_email" class="form-input" placeholder="jane@francisxavier.ac.in" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add_phone">Phone Number *</label>
+            <input type="tel" id="add_phone" class="form-input" placeholder="+91 9876543210" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add_password">Initial Password</label>
+            <input type="password" id="add_password" class="form-input" placeholder="Default: PasskeyUser@2026">
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="add_role">Account Role</label>
+            <select id="add_role" class="form-select">
+              <option value="user">Student / General User</option>
+              <option value="admin">System Administrator</option>
+            </select>
+          </div>
         </div>
 
-        <form id="editUserForm">
-          <input type="hidden" id="edit_target_user_id">
-          
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; border-top: 1px solid var(--card-border); padding-top: 14px;">
+          <button type="button" onclick="closeModal('addUserModal')" class="btn btn-secondary" style="width: auto;">Cancel</button>
+          <button type="submit" id="btnSubmitAddUser" class="btn btn-success" style="width: auto;">➕ Create Account</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Edit User Modal -->
+  <div id="editUserModal" class="modal-overlay">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 class="card-title" style="margin-bottom: 0;">✏️ Edit User Details</h3>
+        <button type="button" onclick="closeModal('editUserModal')" class="modal-close">✕</button>
+      </div>
+
+      <form id="editUserForm">
+        <input type="hidden" id="edit_target_user_id">
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;">
           <div class="form-group">
-            <label class="form-label" for="edit_user_id">User ID / Roll No</label>
+            <label class="form-label" for="edit_user_id">Roll No / User ID *</label>
             <input type="text" id="edit_user_id" class="form-input" required>
+            <span style="font-size: 0.75rem; color: var(--text-dim);">Modifying User ID cascades updates across logs & credentials.</span>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="edit_full_name">Full Name</label>
+            <label class="form-label" for="edit_full_name">Full Name *</label>
             <input type="text" id="edit_full_name" class="form-input" required>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="edit_email">Email Address</label>
+            <label class="form-label" for="edit_email">Email Address *</label>
             <input type="email" id="edit_email" class="form-input" required>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="edit_phone">Phone Number</label>
+            <label class="form-label" for="edit_phone">Phone Number *</label>
             <input type="tel" id="edit_phone" class="form-input" required>
           </div>
 
           <div class="form-group">
-            <label class="form-label" for="edit_role">Role</label>
+            <label class="form-label" for="edit_role">Account Role</label>
             <select id="edit_role" class="form-select">
-              <option value="user">User</option>
-              <option value="admin">Administrator</option>
+              <option value="user">Student / General User</option>
+              <option value="admin">System Administrator</option>
             </select>
           </div>
 
@@ -150,66 +295,302 @@
             <select id="edit_status" class="form-select">
               <option value="active">Active</option>
               <option value="inactive">Inactive</option>
+              <option value="blocked_late">Blocked (Late Punch In)</option>
             </select>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label class="form-label" for="edit_password">New Password (leave blank to keep current password)</label>
-            <input type="password" id="edit_password" class="form-input" placeholder="Enter new password if changing">
-          </div>
+        <div class="form-group" style="margin-top: 10px;">
+          <label class="form-label" for="edit_password">New Password (leave blank to keep current password)</label>
+          <input type="password" id="edit_password" class="form-input" placeholder="Enter new password if changing">
+        </div>
 
-          <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px;">
-            <button type="button" onclick="closeEditModal()" class="btn btn-secondary" style="width: auto;">Cancel</button>
-            <button type="submit" class="btn btn-success" style="width: auto;">💾 Save Changes</button>
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; border-top: 1px solid var(--card-border); padding-top: 14px;">
+          <button type="button" onclick="closeModal('editUserModal')" class="btn btn-secondary" style="width: auto;">Cancel</button>
+          <button type="submit" id="btnSubmitEditUser" class="btn btn-success" style="width: auto;">💾 Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 3. User Full Profile & History Drawer Modal -->
+  <div id="viewUserModal" class="modal-overlay">
+    <div class="modal-content modal-lg" style="max-height: 90vh; overflow-y: auto;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div id="detailAvatar" class="user-avatar" style="width: 44px; height: 44px; font-size: 1.1rem;">U</div>
+          <div>
+            <h3 id="detailFullName" style="margin: 0; font-size: 1.15rem; font-weight: 700;">User Name</h3>
+            <div id="detailUserIdBadge" style="font-size: 0.8rem; color: var(--text-muted);">ID: -</div>
           </div>
-        </form>
+        </div>
+        <button type="button" onclick="closeModal('viewUserModal')" class="modal-close">✕</button>
+      </div>
+
+      <!-- Quick Stats Strip -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 18px;">
+        <div class="kpi-card" style="padding: 10px 12px;">
+          <span class="kpi-lbl">Status</span>
+          <div id="detailStatus" class="kpi-val" style="font-size: 1rem;">Active</div>
+        </div>
+        <div class="kpi-card" style="padding: 10px 12px;">
+          <span class="kpi-lbl">Role</span>
+          <div id="detailRole" class="kpi-val" style="font-size: 1rem;">User</div>
+        </div>
+        <div class="kpi-card" style="padding: 10px 12px;">
+          <span class="kpi-lbl">Attendance</span>
+          <div id="detailAttendancePct" class="kpi-val" style="font-size: 1rem; color: var(--primary);">0%</div>
+        </div>
+        <div class="kpi-card" style="padding: 10px 12px;">
+          <span class="kpi-lbl">Present Days</span>
+          <div id="detailPresentRatio" class="kpi-val" style="font-size: 1rem; color: var(--success);">0 / 0d</div>
+        </div>
+      </div>
+
+      <!-- Detailed Info Tabs / Sections -->
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Contact & Account Details -->
+        <div style="background: rgba(0,0,0,0.2); padding: 14px; border-radius: var(--radius-md); border: 1px solid var(--card-border); font-size: 0.88rem;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">
+            <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">EMAIL ADDRESS</span><strong id="detailEmail">-</strong></div>
+            <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">PHONE NUMBER</span><strong id="detailPhone">-</strong></div>
+            <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">TODAY PUNCH IN</span><strong id="detailPunchIn" style="color: var(--success);">--:--</strong></div>
+            <div><span style="color: var(--text-dim); display: block; font-size: 0.75rem;">TODAY PUNCH OUT</span><strong id="detailPunchOut" style="color: var(--primary);">--:--</strong></div>
+          </div>
+        </div>
+
+        <!-- Registered Passkeys Section -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <h4 style="font-size: 0.95rem; font-weight: 600; color: var(--text-main);">🔐 Registered Biometric Devices</h4>
+            <button id="btnDetailAddPasskey" class="btn btn-primary" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">➕ Enroll Passkey</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" style="font-size: 0.82rem;">
+              <thead>
+                <tr>
+                  <th>Device / Passkey Name</th>
+                  <th>Registered On</th>
+                  <th>Last Authenticated</th>
+                  <th>Sign Count</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="detailPasskeysTbody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No passkeys registered.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Recent Logs Section -->
+        <div>
+          <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 8px; color: var(--text-main);">📜 Recent Authentication Activity</h4>
+          <div class="table-responsive">
+            <table class="data-table" style="font-size: 0.82rem;">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Result</th>
+                  <th>Distance</th>
+                  <th>Accuracy</th>
+                  <th>Reason / Note</th>
+                </tr>
+              </thead>
+              <tbody id="detailLogsTbody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No recent activity.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 20px; border-top: 1px solid var(--card-border); padding-top: 14px;">
+        <button type="button" onclick="closeModal('viewUserModal')" class="btn btn-secondary" style="width: auto;">Close</button>
       </div>
     </div>
-  </main>
+  </div>
+
+  <!-- 4. Manage Passkeys Modal -->
+  <div id="adminPasskeysModal" class="modal-overlay">
+    <div class="modal-content modal-lg">
+      <div class="modal-header">
+        <h3 class="card-title" style="margin-bottom: 0;">🔐 Manage Passkeys - <span id="passkeysModalUserName">User</span></h3>
+        <button type="button" onclick="closeModal('adminPasskeysModal')" class="modal-close">✕</button>
+      </div>
+
+      <input type="hidden" id="passkeysModalUserId">
+      <input type="hidden" id="passkeysModalFullName">
+
+      <div style="margin-bottom: 16px;">
+        <button id="btnAdminRegisterPasskey" onclick="handlePasskeyEnrollFromModal()" class="btn btn-primary" style="width: 100%;">
+          ➕ Register New Biometric Passkey on this Device
+        </button>
+      </div>
+
+      <div class="table-responsive">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Device Name</th>
+              <th>Enrolled Date</th>
+              <th>Last Used</th>
+              <th>Usage Count</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="adminPasskeysTableBody">
+            <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">Loading passkeys...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 18px;">
+        <button type="button" onclick="closeModal('adminPasskeysModal')" class="btn btn-secondary" style="width: auto;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Admin Direct Password Reset Modal -->
+  <div id="resetPasswordModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 class="card-title" style="margin-bottom: 0;">🔑 Reset Password</h3>
+        <button type="button" onclick="closeModal('resetPasswordModal')" class="modal-close">✕</button>
+      </div>
+
+      <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 16px;">
+        Set a new password for <strong id="resetTargetName">User</strong> (<span id="resetTargetId">ID</span>).
+      </p>
+
+      <form id="adminResetPasswordForm">
+        <input type="hidden" id="reset_password_user_id">
+
+        <div class="form-group">
+          <label class="form-label" for="admin_new_password">New Password *</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="admin_new_password" class="form-input" placeholder="Enter or generate password" required>
+            <button type="button" onclick="generateRandomPassword()" class="btn btn-secondary" style="width: auto; padding: 8px 12px; font-size: 0.8rem;" title="Generate Strong Password">🎲 Generate</button>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px;">
+          <button type="button" onclick="closeModal('resetPasswordModal')" class="btn btn-secondary" style="width: auto;">Cancel</button>
+          <button type="submit" id="btnSubmitResetPassword" class="btn btn-success" style="width: auto;">💾 Update Password</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. Custom Confirmation Modal -->
+  <div id="confirmActionModal" class="modal-overlay">
+    <div class="modal-content" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 id="confirmTitle" class="card-title" style="margin-bottom: 0; color: var(--danger);">⚠️ Confirm Action</h3>
+        <button type="button" onclick="closeModal('confirmActionModal')" class="modal-close">✕</button>
+      </div>
+      <p id="confirmMessage" style="color: var(--text-main); font-size: 0.92rem; margin-bottom: 20px; line-height: 1.4;">
+        Are you sure you want to proceed?
+      </p>
+      <div style="display: flex; gap: 10px; justify-content: flex-end;">
+        <button type="button" onclick="closeModal('confirmActionModal')" class="btn btn-secondary" style="width: auto;">Cancel</button>
+        <button type="button" id="btnConfirmProceed" class="btn btn-danger" style="width: auto;">Confirm</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/js/api.js"></script>
   <script src="/js/webauthn.js"></script>
   <script src="/js/app.js"></script>
   <script>
+    let allUsers = [];
+    let currentRoleFilter = 'all';
+    let currentStatusFilter = 'all';
+    let searchDebounceTimer = null;
+    let confirmCallback = null;
+
     document.addEventListener('DOMContentLoaded', () => {
       loadUsers();
 
-      document.getElementById('btnFilterUsers').addEventListener('click', loadUsers);
-      document.getElementById('userSearchInput').addEventListener('keyup', (e) => {
-        if (e.key === 'Enter') loadUsers();
+      // Search input with live debounce
+      const searchInput = document.getElementById('userSearchInput');
+      const searchClear = document.getElementById('searchClearBtn');
+
+      searchInput.addEventListener('input', () => {
+        const val = searchInput.value.trim();
+        searchClear.style.display = val ? 'inline' : 'none';
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(loadUsers, 300);
       });
 
+      // Sort Select
+      document.getElementById('userSortSelect').addEventListener('change', loadUsers);
+
+      // Role Filter Pills
+      document.querySelectorAll('#roleFilterPills .filter-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          document.querySelectorAll('#roleFilterPills .filter-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          currentRoleFilter = pill.dataset.role;
+          loadUsers();
+        });
+      });
+
+      // Status Filter Pills
+      document.querySelectorAll('#statusFilterPills .filter-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+          document.querySelectorAll('#statusFilterPills .filter-pill').forEach(p => p.classList.remove('active'));
+          pill.classList.add('active');
+          currentStatusFilter = pill.dataset.status;
+          loadUsers();
+        });
+      });
+
+      // Add User Form Submission
       document.getElementById('adminCreateUserForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const user_id = document.getElementById('add_user_id').value;
-        const full_name = document.getElementById('add_full_name').value;
-        const email = document.getElementById('add_email').value;
-        const phone = document.getElementById('add_phone').value;
-        const password = document.getElementById('add_password').value;
+        const user_id = document.getElementById('add_user_id').value.trim();
+        const full_name = document.getElementById('add_full_name').value.trim();
+        const email = document.getElementById('add_email').value.trim();
+        const phone = document.getElementById('add_phone').value.trim();
+        const password = document.getElementById('add_password').value.trim();
         const role = document.getElementById('add_role').value;
+
+        const btn = document.getElementById('btnSubmitAddUser');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
 
         try {
           const res = await API.adminCreateUser({ user_id, full_name, email, phone, password, role });
           if (res.success) {
             App.showAlert(res.message, 'success');
             document.getElementById('adminCreateUserForm').reset();
+            closeModal('addUserModal');
             loadUsers();
           }
         } catch (err) {
           App.showAlert(err.message, 'danger');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '➕ Create Account';
         }
       });
 
+      // Edit User Form Submission
       document.getElementById('editUserForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const old_user_id = document.getElementById('edit_target_user_id').value;
-        const new_user_id = document.getElementById('edit_user_id').value;
-        const full_name = document.getElementById('edit_full_name').value;
-        const email = document.getElementById('edit_email').value;
-        const phone = document.getElementById('edit_phone').value;
+        const new_user_id = document.getElementById('edit_user_id').value.trim();
+        const full_name = document.getElementById('edit_full_name').value.trim();
+        const email = document.getElementById('edit_email').value.trim();
+        const phone = document.getElementById('edit_phone').value.trim();
         const role = document.getElementById('edit_role').value;
         const status = document.getElementById('edit_status').value;
-        const password = document.getElementById('edit_password').value;
+        const password = document.getElementById('edit_password').value.trim();
+
+        const btn = document.getElementById('btnSubmitEditUser');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
 
         try {
           const payload = { new_user_id, full_name, email, phone, role, status };
@@ -218,110 +599,193 @@
           const res = await API.updateUserDetails(old_user_id, payload);
           if (res.success) {
             App.showAlert(res.message, 'success');
-            closeEditModal();
+            closeModal('editUserModal');
             loadUsers();
           }
         } catch (err) {
           App.showAlert(err.message, 'danger');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '💾 Save Changes';
         }
+      });
+
+      // Reset Password Form Submission
+      document.getElementById('adminResetPasswordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const user_id = document.getElementById('reset_password_user_id').value;
+        const new_password = document.getElementById('admin_new_password').value.trim();
+
+        const btn = document.getElementById('btnSubmitResetPassword');
+        btn.disabled = true;
+        btn.textContent = 'Updating...';
+
+        try {
+          const res = await API.adminResetUserPassword(user_id, new_password);
+          if (res.success) {
+            App.showAlert(res.message, 'success');
+            closeModal('resetPasswordModal');
+          }
+        } catch (err) {
+          App.showAlert(err.message, 'danger');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = '💾 Update Password';
+        }
+      });
+
+      // Confirm Modal Proceed Button
+      document.getElementById('btnConfirmProceed').addEventListener('click', () => {
+        if (typeof confirmCallback === 'function') {
+          confirmCallback();
+        }
+        closeModal('confirmActionModal');
       });
     });
 
+    function clearSearch() {
+      document.getElementById('userSearchInput').value = '';
+      document.getElementById('searchClearBtn').style.display = 'none';
+      loadUsers();
+    }
+
     async function loadUsers() {
-      const search = document.getElementById('userSearchInput').value;
-      const status = document.getElementById('userStatusSelect').value;
+      const search = document.getElementById('userSearchInput').value.trim();
+      const sort_by = document.getElementById('userSortSelect').value;
       const tbody = document.getElementById('usersTableBody');
 
       try {
-        const res = await API.getAdminUsers(search, status);
+        const res = await API.getAdminUsers(search, currentStatusFilter, currentRoleFilter, sort_by);
         if (!res.success) throw new Error(res.message);
 
-        if (!res.users || res.users.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-dim);">No users found.</td></tr>';
+        allUsers = res.users || [];
+        updateKpiMetrics(allUsers);
+
+        document.getElementById('userCountBadge').textContent = `${allUsers.length} User${allUsers.length === 1 ? '' : 's'}`;
+
+        if (allUsers.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 30px;">No users found matching current filters.</td></tr>';
           return;
         }
 
-        tbody.innerHTML = res.users.map(u => {
+        tbody.innerHTML = allUsers.map(u => {
           const isBlockedLate = u.status === 'blocked_late';
           const isActive = u.status === 'active';
-          
-          let statusBadge = '<span class="badge badge-danger">INACTIVE</span>';
+          const isAdmin = u.role === 'admin';
+
+          let statusBadge = '<span class="badge badge-danger">🔴 INACTIVE</span>';
           if (isBlockedLate) {
-            statusBadge = '<span class="badge badge-danger" style="background: rgba(239,68,68,0.2); border: 1px solid var(--danger);">🔴 BLOCKED (LATE)</span>';
+            statusBadge = '<span class="badge badge-warning">⚠️ BLOCKED (LATE)</span>';
           } else if (isActive) {
-            statusBadge = '<span class="badge badge-success">ACTIVE</span>';
+            statusBadge = '<span class="badge badge-success">🟢 ACTIVE</span>';
           }
 
+          const roleBadge = isAdmin
+            ? '<span class="user-badge" style="background: rgba(245,158,11,0.15); color: var(--warning); border-color: rgba(245,158,11,0.3); font-size: 0.7rem;">👑 Admin</span>'
+            : '<span class="user-badge" style="font-size: 0.7rem;">👤 User</span>';
+
           const pct = u.attendance_percentage !== undefined ? u.attendance_percentage : 0;
-          let pctBadgeClass = 'badge-danger';
-          if (pct >= 75) pctBadgeClass = 'badge-success';
-          else if (pct >= 50) pctBadgeClass = 'badge-warning';
+          let progressClass = 'danger';
+          if (pct >= 75) progressClass = 'success';
+          else if (pct >= 50) progressClass = 'warning';
 
-          const attendanceBadge = `<span class="badge ${pctBadgeClass}">${pct}% (${u.present_days || 0}/${u.total_working_days || 1}d)</span>`;
+          const attendanceHtml = `
+            <div style="min-width: 110px;">
+              <div style="display:flex; justify-content: space-between; font-size: 0.8rem; font-weight: 600;">
+                <span>${pct}%</span>
+                <span style="color: var(--text-dim); font-size: 0.72rem;">${u.present_days || 0}/${u.total_working_days || 1}d</span>
+              </div>
+              <div class="progress-bar-container">
+                <div class="progress-bar-fill ${progressClass}" style="width: ${pct}%;"></div>
+              </div>
+            </div>
+          `;
 
-          const safeUserId = encodeURIComponent(u.user_id);
-          const safeFullName = encodeURIComponent(u.full_name || '');
-          const safeEmail = encodeURIComponent(u.email || '');
-          const safePhone = encodeURIComponent(u.phone || '');
-          const safeRole = encodeURIComponent(u.role || 'user');
-          const safeStatus = encodeURIComponent(u.status || 'active');
+          const passkeysHtml = u.credential_count > 0
+            ? `<button onclick="openPasskeysModal('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}')" class="btn btn-secondary" style="width:auto; padding:3px 8px; font-size:0.75rem; border-color: rgba(16,185,129,0.4); color: var(--success);" title="Manage Passkeys">🔑 ${u.credential_count} Key(s)</button>`
+            : `<button onclick="openPasskeysModal('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}')" class="btn btn-secondary" style="width:auto; padding:3px 8px; font-size:0.75rem; color: var(--text-dim);" title="Enroll Passkey">➕ None</button>`;
 
-          const editBtn = `<button onclick="handleEditClick(this)" data-userid="${safeUserId}" data-fullname="${safeFullName}" data-email="${safeEmail}" data-phone="${safePhone}" data-role="${safeRole}" data-status="${safeStatus}" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;">✏️ Edit</button>`;
-
-          const registerPasskeyBtn = `<button onclick="handlePasskeyClick(this)" data-userid="${safeUserId}" data-fullname="${safeFullName}" class="btn btn-primary" style="width:auto; padding:4px 8px; font-size:0.75rem;">☝️ Passkey</button>`;
-
-          const unblockLateBtn = isBlockedLate
-            ? `<button onclick="unblockLateUser('${u.user_id}')" class="btn btn-warning" style="width:auto; padding:4px 8px; font-size:0.75rem;">🔓 Unblock Late</button>`
-            : '';
-
-          const toggleActionBtn = isActive
-            ? `<button onclick="toggleStatus('${u.user_id}', 'inactive')" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;">Deactivate</button>`
-            : `<button onclick="toggleStatus('${u.user_id}', 'active')" class="btn btn-success" style="width:auto; padding:4px 8px; font-size:0.75rem;">Activate</button>`;
-
-          const deleteBtn = u.user_id !== 'admin'
-            ? `<button onclick="deleteAccount('${u.user_id}')" class="btn btn-danger" style="width:auto; padding:4px 8px; font-size:0.75rem;">Delete</button>`
-            : '';
+          const initials = getInitials(u.full_name);
+          const avatarClass = isAdmin ? 'user-avatar admin-avatar' : 'user-avatar';
 
           return `
             <tr>
-              <td><strong>${u.user_id}</strong></td>
-              <td>${u.full_name}</td>
-              <td>${u.email}</td>
-              <td>${u.phone}</td>
-              <td>${statusBadge}</td>
-              <td>${u.credential_count > 0 ? `🟢 ${u.credential_count} key(s)` : '🔴 None'}</td>
-              <td>${attendanceBadge}</td>
               <td>
-                <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                  ${unblockLateBtn}
-                  ${editBtn}
-                  ${registerPasskeyBtn}
-                  ${toggleActionBtn}
-                  ${deleteBtn}
+                <div style="display: flex; align-items: center; gap: 10px;">
+                  <div class="${avatarClass}">${initials}</div>
+                  <div>
+                    <div class="user-row-name">
+                      <span>${escapeHtml(u.full_name)}</span>
+                      ${roleBadge}
+                    </div>
+                    <div class="user-meta-sub">
+                      <span>Joined ${formatDate(u.created_at)}</span>
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="copy-badge" onclick="copyToClipboard('${escapeAttr(u.user_id)}')" title="Click to copy User ID">
+                  ${escapeHtml(u.user_id)} 📋
+                </span>
+              </td>
+              <td>
+                <div style="font-size: 0.85rem;">
+                  <div><a href="mailto:${escapeAttr(u.email)}" class="quick-link">📧 ${escapeHtml(u.email)}</a></div>
+                  <div><a href="tel:${escapeAttr(u.phone)}" class="quick-link">📞 ${escapeHtml(u.phone)}</a></div>
+                </div>
+              </td>
+              <td>${statusBadge}</td>
+              <td>${passkeysHtml}</td>
+              <td>${attendanceHtml}</td>
+              <td style="text-align: right;">
+                <div class="action-btn-group" style="justify-content: flex-end;">
+                  <button onclick="openViewUserModal('${escapeAttr(u.user_id)}')" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;" title="View Full Profile">👁️ Details</button>
+                  <button onclick="openEditUserModal('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}', '${escapeAttr(u.email)}', '${escapeAttr(u.phone)}', '${escapeAttr(u.role)}', '${escapeAttr(u.status)}')" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;" title="Edit User">✏️ Edit</button>
+                  <button onclick="openResetPasswordModal('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}')" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;" title="Reset Password">🔑 Reset</button>
+                  ${isBlockedLate ? `<button onclick="confirmUnblockLate('${escapeAttr(u.user_id)}')" class="btn btn-warning" style="width:auto; padding:4px 8px; font-size:0.75rem;">🔓 Unblock</button>` : ''}
+                  ${isActive
+                    ? `<button onclick="confirmToggleStatus('${escapeAttr(u.user_id)}', 'inactive')" class="btn btn-secondary" style="width:auto; padding:4px 8px; font-size:0.75rem;" title="Deactivate">Deactivate</button>`
+                    : `<button onclick="confirmToggleStatus('${escapeAttr(u.user_id)}', 'active')" class="btn btn-success" style="width:auto; padding:4px 8px; font-size:0.75rem;" title="Activate">Activate</button>`}
+                  ${u.user_id !== 'admin' ? `<button onclick="confirmDeleteUser('${escapeAttr(u.user_id)}')" class="btn btn-danger" style="width:auto; padding:4px 8px; font-size:0.75rem;" title="Delete User">🗑️</button>` : ''}
                 </div>
               </td>
             </tr>
           `;
         }).join('');
       } catch (err) {
-        App.showAlert(err.message, 'danger');
+        App.showAlert(`Failed to load users: ${err.message}`, 'danger');
       }
     }
 
-    function handleEditClick(btn) {
-      const user_id = decodeURIComponent(btn.dataset.userid);
-      const full_name = decodeURIComponent(btn.dataset.fullname);
-      const email = decodeURIComponent(btn.dataset.email);
-      const phone = decodeURIComponent(btn.dataset.phone);
-      const role = decodeURIComponent(btn.dataset.role);
-      const status = decodeURIComponent(btn.dataset.status);
-      openEditUserModal(user_id, full_name, email, phone, role, status);
+    function updateKpiMetrics(users) {
+      const total = users.length;
+      const active = users.filter(u => u.status === 'active').length;
+      const inactive = users.filter(u => u.status === 'inactive').length;
+      const blocked = users.filter(u => u.status === 'blocked_late').length;
+      const passkeys = users.filter(u => u.credential_count > 0).length;
+
+      document.getElementById('kpiTotalUsers').textContent = total;
+      document.getElementById('kpiActiveUsers').textContent = active;
+      document.getElementById('kpiInactiveUsers').textContent = inactive;
+      document.getElementById('kpiBlockedUsers').textContent = blocked;
+      document.getElementById('kpiPasskeysCount').textContent = `${passkeys} (${total > 0 ? Math.round((passkeys/total)*100) : 0}%)`;
     }
 
-    function handlePasskeyClick(btn) {
-      const user_id = decodeURIComponent(btn.dataset.userid);
-      const full_name = decodeURIComponent(btn.dataset.fullname);
-      registerUserPasskey(user_id, full_name);
+    // Modal Control Helpers
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }
+
+    function closeModal(id) {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('active');
+    }
+
+    function openAddUserModal() {
+      document.getElementById('adminCreateUserForm').reset();
+      openModal('addUserModal');
     }
 
     function openEditUserModal(user_id, full_name, email, phone, role, status) {
@@ -334,85 +798,295 @@
       document.getElementById('edit_status').value = status || 'active';
       document.getElementById('edit_password').value = '';
 
-      const userIdInput = document.getElementById('edit_user_id');
+      const idInput = document.getElementById('edit_user_id');
       if (user_id === 'admin') {
-        userIdInput.disabled = true;
-        userIdInput.title = "Default system admin User ID cannot be changed.";
+        idInput.disabled = true;
+        idInput.title = 'Default system admin User ID cannot be changed.';
       } else {
-        userIdInput.disabled = false;
-        userIdInput.title = "";
+        idInput.disabled = false;
+        idInput.title = '';
       }
-      
-      const modal = document.getElementById('editUserModal');
-      modal.classList.add('active');
+
+      openModal('editUserModal');
     }
 
-    function closeEditModal() {
-      const modal = document.getElementById('editUserModal');
-      modal.classList.remove('active');
-    }
+    async function openViewUserModal(user_id) {
+      openModal('viewUserModal');
+      document.getElementById('detailFullName').textContent = 'Loading...';
+      document.getElementById('detailUserIdBadge').textContent = `ID: ${user_id}`;
 
-    async function registerUserPasskey(user_id, full_name) {
       try {
-        App.showAlert(`Generating fingerprint registration challenge for ${full_name} (${user_id})...`, 'info');
-        const optRes = await API.getWebAuthnRegisterOptions(user_id);
-        
-        if (!optRes.success) {
-          throw new Error(optRes.message || 'Failed to get WebAuthn registration options.');
+        const res = await API.getAdminUserDetails(user_id);
+        if (!res.success) throw new Error(res.message);
+
+        const data = res.data;
+        const u = data.user;
+        const stats = data.attendance_stats || {};
+        const punch = data.today_punch || {};
+
+        document.getElementById('detailAvatar').textContent = getInitials(u.full_name);
+        document.getElementById('detailAvatar').className = u.role === 'admin' ? 'user-avatar admin-avatar' : 'user-avatar';
+        document.getElementById('detailFullName').textContent = u.full_name;
+        document.getElementById('detailUserIdBadge').textContent = `Roll No / User ID: ${u.user_id}`;
+
+        document.getElementById('detailStatus').textContent = u.status.toUpperCase();
+        document.getElementById('detailRole').textContent = u.role.toUpperCase();
+        document.getElementById('detailAttendancePct').textContent = `${stats.attendance_percentage || 0}%`;
+        document.getElementById('detailPresentRatio').textContent = `${stats.present_days || 0} / ${stats.total_working_days || 1}d`;
+
+        document.getElementById('detailEmail').textContent = u.email;
+        document.getElementById('detailPhone').textContent = u.phone;
+        document.getElementById('detailPunchIn').textContent = punch.punch_in || '--:--';
+        document.getElementById('detailPunchOut').textContent = punch.punch_out || '--:--';
+
+        // Setup detail modal passkey button
+        document.getElementById('btnDetailAddPasskey').onclick = () => {
+          closeModal('viewUserModal');
+          openPasskeysModal(u.user_id, u.full_name);
+        };
+
+        // Render passkeys
+        const creds = data.credentials || [];
+        const credsTbody = document.getElementById('detailPasskeysTbody');
+        if (creds.length === 0) {
+          credsTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No passkeys registered.</td></tr>';
+        } else {
+          credsTbody.innerHTML = creds.map(c => `
+            <tr>
+              <td><strong>${escapeHtml(c.credential_name || 'Passkey')}</strong></td>
+              <td>${formatDate(c.created_at)}</td>
+              <td>${c.last_used_at ? formatDate(c.last_used_at) : 'Never'}</td>
+              <td>${c.sign_count || 0}</td>
+              <td>
+                <button onclick="deletePasskey('${escapeAttr(u.user_id)}', '${escapeAttr(c.credential_id)}', true)" class="btn btn-danger" style="width:auto; padding:2px 6px; font-size:0.75rem;">Revoke</button>
+              </td>
+            </tr>
+          `).join('');
         }
 
-        App.showAlert(`Please scan Fingerprint / Face ID for ${full_name} on your device...`, 'info');
+        // Render logs
+        const logs = data.recent_logs || [];
+        const logsTbody = document.getElementById('detailLogsTbody');
+        if (logs.length === 0) {
+          logsTbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No authentication records.</td></tr>';
+        } else {
+          logsTbody.innerHTML = logs.map(l => {
+            const isSuccess = l.result === 'SUCCESS';
+            const badge = isSuccess ? '<span class="badge badge-success">SUCCESS</span>' : `<span class="badge badge-danger">${escapeHtml(l.result)}</span>`;
+            return `
+              <tr>
+                <td>${formatDate(l.timestamp)}</td>
+                <td>${badge}</td>
+                <td>${l.calculated_distance !== null ? `${l.calculated_distance}m` : '--'}</td>
+                <td>${l.gps_accuracy !== null ? `${l.gps_accuracy}m` : '--'}</td>
+                <td style="color: var(--text-muted);">${escapeHtml(l.failure_reason || 'Biometric verified inside geofence')}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } catch (err) {
+        App.showAlert(`Failed to load user details: ${err.message}`, 'danger');
+      }
+    }
+
+    async function openPasskeysModal(user_id, full_name) {
+      document.getElementById('passkeysModalUserId').value = user_id;
+      document.getElementById('passkeysModalFullName').value = full_name;
+      document.getElementById('passkeysModalUserName').textContent = `${full_name} (${user_id})`;
+      openModal('adminPasskeysModal');
+
+      await loadModalPasskeys(user_id);
+    }
+
+    async function loadModalPasskeys(user_id) {
+      const tbody = document.getElementById('adminPasskeysTableBody');
+      try {
+        const res = await API.getAdminUserCredentials(user_id);
+        if (!res.success) throw new Error(res.message);
+
+        const creds = res.credentials || [];
+        if (creds.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-dim); padding: 18px;">No biometric passkeys registered for this user.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = creds.map(c => `
+          <tr>
+            <td><strong>${escapeHtml(c.credential_name || 'Passkey')}</strong></td>
+            <td>${formatDate(c.created_at)}</td>
+            <td>${c.last_used_at ? formatDate(c.last_used_at) : 'Never'}</td>
+            <td>${c.sign_count || 0} times</td>
+            <td>
+              <button onclick="deletePasskey('${escapeAttr(user_id)}', '${escapeAttr(c.credential_id)}')" class="btn btn-danger" style="width:auto; padding:4px 8px; font-size:0.75rem;">🗑️ Revoke Key</button>
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="5" style="color: var(--danger); text-align: center;">${escapeHtml(err.message)}</td></tr>`;
+      }
+    }
+
+    async function handlePasskeyEnrollFromModal() {
+      const user_id = document.getElementById('passkeysModalUserId').value;
+      const full_name = document.getElementById('passkeysModalFullName').value;
+
+      try {
+        App.showAlert(`Generating biometric registration challenge for ${full_name}...`, 'info');
+        const optRes = await API.getWebAuthnRegisterOptions(user_id);
+        if (!optRes.success) throw new Error(optRes.message || 'Failed to get WebAuthn options.');
+
+        App.showAlert(`Scan fingerprint / Face ID for ${full_name} on your device...`, 'info');
         const credential = await WebAuthnService.registerPasskey(optRes.options);
 
-        App.showAlert('Verifying biometric credential on server...', 'info');
-        const verifyRes = await API.verifyWebAuthnRegister(credential, `${full_name} Device Passkey`);
+        App.showAlert('Verifying and registering credential on server...', 'info');
+        const verifyRes = await API.verifyWebAuthnRegister(credential, `${full_name} Passkey`);
 
         if (verifyRes.success) {
-          App.showAlert(`🎉 Biometric passkey registered successfully for ${full_name}!`, 'success');
+          App.showAlert(`🎉 Passkey registered successfully for ${full_name}!`, 'success');
+          await loadModalPasskeys(user_id);
           loadUsers();
         }
       } catch (err) {
-        App.showAlert(`Fingerprint registration failed: ${err.message}`, 'danger');
+        App.showAlert(`Biometric enrollment failed: ${err.message}`, 'danger');
       }
     }
 
-    async function unblockLateUser(user_id) {
-      if (!confirm(`Are you sure you want to unblock user "${user_id}" and approve their Late In-Time Permission?`)) return;
-      try {
-        const res = await API.adminUnblockLateUser(user_id);
-        if (res.success) {
-          App.showAlert(res.message, 'success');
-          loadUsers();
+    async function deletePasskey(user_id, credential_id, isFromDetail = false) {
+      showConfirmDialog(
+        'Revoke Passkey',
+        'Are you sure you want to revoke this biometric passkey? The user will not be able to authenticate with this device until a new key is enrolled.',
+        async () => {
+          try {
+            const res = await API.adminDeleteUserCredential(user_id, credential_id);
+            if (res.success) {
+              App.showAlert(res.message, 'success');
+              if (isFromDetail) {
+                openViewUserModal(user_id);
+              } else {
+                loadModalPasskeys(user_id);
+              }
+              loadUsers();
+            }
+          } catch (err) {
+            App.showAlert(err.message, 'danger');
+          }
         }
+      );
+    }
+
+    function openResetPasswordModal(user_id, full_name) {
+      document.getElementById('reset_password_user_id').value = user_id;
+      document.getElementById('resetTargetName').textContent = full_name;
+      document.getElementById('resetTargetId').textContent = user_id;
+      document.getElementById('admin_new_password').value = '';
+      openModal('resetPasswordModal');
+    }
+
+    function generateRandomPassword() {
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%&*';
+      let pw = '';
+      for (let i = 0; i < 12; i++) {
+        pw += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      document.getElementById('admin_new_password').value = pw;
+    }
+
+    function confirmToggleStatus(user_id, new_status) {
+      const isActivating = new_status === 'active';
+      showConfirmDialog(
+        isActivating ? 'Activate Account' : 'Deactivate Account',
+        `Are you sure you want to ${isActivating ? 'activate' : 'deactivate'} user "${user_id}"?`,
+        async () => {
+          try {
+            const res = await API.updateUserStatus(user_id, new_status);
+            if (res.success) {
+              App.showAlert(res.message, 'success');
+              loadUsers();
+            }
+          } catch (e) {
+            App.showAlert(e.message, 'danger');
+          }
+        }
+      );
+    }
+
+    function confirmUnblockLate(user_id) {
+      showConfirmDialog(
+        'Unblock Late User',
+        `Are you sure you want to unblock user "${user_id}" and approve their Late In-Time slip? Their status will return to Active.`,
+        async () => {
+          try {
+            const res = await API.adminUnblockLateUser(user_id);
+            if (res.success) {
+              App.showAlert(res.message, 'success');
+              loadUsers();
+            }
+          } catch (e) {
+            App.showAlert(e.message, 'danger');
+          }
+        }
+      );
+    }
+
+    function confirmDeleteUser(user_id) {
+      showConfirmDialog(
+        'Delete User Account',
+        `Are you sure you want to permanently delete user "${user_id}"? This will delete all registered passkeys and attendance logs. This action cannot be undone.`,
+        async () => {
+          try {
+            const res = await API.deleteUser(user_id);
+            if (res.success) {
+              App.showAlert(res.message, 'success');
+              loadUsers();
+            }
+          } catch (e) {
+            App.showAlert(e.message, 'danger');
+          }
+        }
+      );
+    }
+
+    function showConfirmDialog(title, message, onConfirm) {
+      document.getElementById('confirmTitle').textContent = title;
+      document.getElementById('confirmMessage').textContent = message;
+      confirmCallback = onConfirm;
+      openModal('confirmActionModal');
+    }
+
+    function copyToClipboard(text) {
+      navigator.clipboard.writeText(text).then(() => {
+        App.showAlert(`Copied "${text}" to clipboard!`, 'info');
+      }).catch(() => {
+        App.showAlert(`User ID: ${text}`, 'info');
+      });
+    }
+
+    function getInitials(name) {
+      if (!name) return 'U';
+      const parts = name.trim().split(/\s+/);
+      if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+
+    function formatDate(dateStr) {
+      if (!dateStr) return '--';
+      try {
+        const d = new Date(dateStr.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return dateStr;
+        return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
       } catch (e) {
-        App.showAlert(e.message, 'danger');
+        return dateStr;
       }
     }
 
-    async function toggleStatus(user_id, new_status) {
-      try {
-        const res = await API.updateUserStatus(user_id, new_status);
-        if (res.success) {
-          App.showAlert(res.message, 'success');
-          loadUsers();
-        }
-      } catch (e) {
-        App.showAlert(e.message, 'danger');
-      }
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    async function deleteAccount(user_id) {
-      if (!confirm(`Are you sure you want to permanently delete user "${user_id}"?`)) return;
-
-      try {
-        const res = await API.deleteUser(user_id);
-        if (res.success) {
-          App.showAlert(res.message, 'success');
-          loadUsers();
-        }
-      } catch (e) {
-        App.showAlert(e.message, 'danger');
-      }
+    function escapeAttr(str) {
+      if (!str) return '';
+      return String(str).replace(/'/g, "\\'").replace(/"/g, '&quot;');
     }
   </script>
 </body>
