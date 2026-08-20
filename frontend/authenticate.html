@@ -129,17 +129,33 @@
 
       indicator.className = 'status-indicator loading';
       indicator.innerHTML = '<span class="spinner"></span><span>GETTING YOUR CURRENT LOCATION...</span>';
-      
-      document.getElementById('valLatitude').textContent = '--.------';
-      document.getElementById('valLongitude').textContent = '--.------';
-      document.getElementById('valAccuracy').textContent = '-- meters';
-      document.getElementById('valDistance').textContent = '-- meters';
+
+      // Pre-fill from cached position if available for instant UI feedback
+      if (GeoService._lastKnownPosition) {
+        document.getElementById('valLatitude').textContent = GeoService._lastKnownPosition.latitude.toFixed(6);
+        document.getElementById('valLongitude').textContent = GeoService._lastKnownPosition.longitude.toFixed(6);
+        document.getElementById('valAccuracy').textContent = `${GeoService._lastKnownPosition.accuracy.toFixed(1)}m`;
+      } else {
+        document.getElementById('valLatitude').textContent = '--.------';
+        document.getElementById('valLongitude').textContent = '--.------';
+        document.getElementById('valAccuracy').textContent = '-- meters';
+        document.getElementById('valDistance').textContent = '-- meters';
+      }
 
       btnAuth.classList.add('disabled');
       btnAuth.disabled = true;
 
+      // Friendly progress update if device GPS takes more than 2.5 seconds
+      const slowTimer = setTimeout(() => {
+        if (indicator.classList.contains('loading')) {
+          indicator.innerHTML = '<span class="spinner"></span><span>CONNECTING TO SATELLITES & GPS...</span>';
+          instruction.textContent = 'Please ensure your device Location / GPS is turned ON in settings.';
+        }
+      }, 2500);
+
       try {
         currentPosData = await GeoService.getCurrentPosition();
+        clearTimeout(slowTimer);
         
         document.getElementById('valLatitude').textContent = currentPosData.latitude.toFixed(6);
         document.getElementById('valLongitude').textContent = currentPosData.longitude.toFixed(6);
@@ -174,6 +190,7 @@
           instruction.style.color = 'var(--danger)';
         }
       } catch (err) {
+        clearTimeout(slowTimer);
         indicator.className = 'status-indicator outside';
         indicator.innerHTML = `✕ LOCATION ERROR`;
         instruction.textContent = err.message;
