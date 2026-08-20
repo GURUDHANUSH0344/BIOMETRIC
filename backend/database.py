@@ -110,8 +110,11 @@ def get_db_connection(db_path=None):
     if is_postgres():
         if not PSYCOPG2_AVAILABLE:
             raise RuntimeError("psycopg2 is required to connect to PostgreSQL / Supabase.")
-        raw_conn = psycopg2.connect(Config.DATABASE_URL)
-        return PostgresConnectionWrapper(raw_conn)
+        try:
+            raw_conn = psycopg2.connect(Config.DATABASE_URL, connect_timeout=15)
+            return PostgresConnectionWrapper(raw_conn)
+        except Exception as e:
+            print(f"[DB ERROR] PostgreSQL connection failed ({e}). Falling back to SQLite.")
 
     # Fallback to SQLite
     if db_path is None:

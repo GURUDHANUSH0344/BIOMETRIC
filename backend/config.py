@@ -11,12 +11,18 @@ if env_path.exists():
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 def sanitize_database_url(url: str) -> str:
-    """Sanitizes and URL-encodes special characters in database URL passwords."""
+    """Sanitizes, URL-encodes passwords, and ensures IPv4 pooler usage for Supabase on IPv4-only hosts."""
     if not url:
         return None
     url = url.strip()
     if url.startswith("postgres://"):
         url = url.replace("postgres://", "postgresql://", 1)
+
+    # Automatic IPv4 Pooler conversion for Supabase direct URLs (which are IPv6-only)
+    if 'db.dfahwspvqdpdocivyeqy.supabase.co' in url or ('.supabase.co' in url and 'pooler' not in url):
+        url = url.replace('db.dfahwspvqdpdocivyeqy.supabase.co', 'aws-0-ap-northeast-2.pooler.supabase.com')
+        if '://postgres:' in url:
+            url = url.replace('://postgres:', '://postgres.dfahwspvqdpdocivyeqy:')
         
     # Handle passwords with special characters (@, #, :, etc.)
     if '://' in url:
