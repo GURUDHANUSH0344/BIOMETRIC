@@ -52,9 +52,12 @@ def create_user(user_id: str, full_name: str, email: str, phone: str, password_h
         """, (u_id, f_name, u_email, u_phone, clean_role, clean_status, password_hash))
         conn.commit()
         return get_user_by_id(u_id)
-    except sqlite3.IntegrityError as e:
+    except Exception as e:
         conn.rollback()
-        raise ValueError("User ID or Email already exists.") from e
+        err_msg = str(e).lower()
+        if 'unique' in err_msg or 'duplicate' in err_msg or 'already exists' in err_msg:
+            raise ValueError("User ID or Email already exists.") from e
+        raise e
     finally:
         conn.close()
 

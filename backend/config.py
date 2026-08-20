@@ -11,9 +11,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "geofence_biometric_super_secret_key_change_in_production_2026")
+    
+    # Database Configuration (Supabase / PostgreSQL / SQLite)
+    DATABASE_URL = os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL") or os.getenv("POSTGRES_URL")
+    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
+        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+        
     DATABASE_PATH = os.getenv("DATABASE_PATH", str(BASE_DIR / "database" / "geofence_bio.db"))
     
-    # MySQL Configuration
+    # MySQL Configuration (Legacy)
     MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
     MYSQL_USER = os.getenv("MYSQL_USER", "root")
     MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
