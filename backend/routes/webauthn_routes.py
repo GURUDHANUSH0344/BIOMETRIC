@@ -38,7 +38,9 @@ def register_options():
 
         return jsonify({
             'success': True,
-            'options': json.loads(options_json)
+            'options': json.loads(options_json),
+            'user_id': user['user_id'],
+            'full_name': user['full_name']
         })
     except Exception as e:
         return jsonify({'success': False, 'message': f'Failed to generate registration options: {str(e)}'}), 500
@@ -50,9 +52,9 @@ def register_verify():
     data = request.get_json() or {}
     credential_payload = data.get('credential')
     credential_name = data.get('credential_name', 'SmartDevice Passkey')
+    user_id = data.get('user_id') or session.get('reg_user_id') or session.get('user_id')
     
     challenge = session.get('reg_challenge')
-    user_id = session.get('reg_user_id') or session.get('user_id')
 
     if not credential_payload or not challenge or not user_id:
         return jsonify({'success': False, 'message': 'Invalid registration state or missing challenge.'}), 400
@@ -72,11 +74,13 @@ def register_verify():
         )
 
         session.pop('reg_challenge', None)
+        session.pop('reg_user_id', None)
 
         return jsonify({
             'success': True,
             'message': 'Passkey registered successfully! You can now authenticate using your smartphone biometric.',
-            'credential_id': cred['credential_id']
+            'credential_id': cred['credential_id'],
+            'user_id': user_id
         })
     except Exception as e:
         return jsonify({'success': False, 'message': f'Biometric registration verification failed: {str(e)}'}), 400

@@ -93,8 +93,8 @@ const API = {
     return this.request('/webauthn/register/options', { method: 'POST', body: { user_id } });
   },
 
-  verifyWebAuthnRegister(credential, credential_name) {
-    return this.request('/webauthn/register/verify', { method: 'POST', body: { credential, credential_name } });
+  verifyWebAuthnRegister(credential, credential_name, user_id) {
+    return this.request('/webauthn/register/verify', { method: 'POST', body: { credential, credential_name, user_id } });
   },
 
   getWebAuthnLoginOptions(user_id, locationData) {

@@ -6,8 +6,8 @@
   <title>Register — FXEC BIOMETRIC</title>
   <link rel="manifest" href="/manifest.json">
   <meta name="theme-color" content="#0d1117">
-  <link rel="stylesheet" href="/css/main.css">
-  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/main.css?v=2.1.0">
+  <link rel="stylesheet" href="/css/components.css?v=2.1.0">
 </head>
 <body>
 
@@ -72,7 +72,14 @@
           <input type="password" id="password" class="form-input" placeholder="Create account password" required>
         </div>
 
-        <button type="submit" class="btn btn-primary">
+        <div class="form-group" style="background: rgba(59, 130, 246, 0.12); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; gap: 10px;">
+          <input type="checkbox" id="reg_enroll_passkey" style="width: 18px; height: 18px; cursor: pointer;" checked>
+          <label for="reg_enroll_passkey" style="font-size: 0.85rem; cursor: pointer; color: var(--text-main); font-weight: 500;">
+            ⚡ Prompt & Enroll Biometric Passkey on this device immediately
+          </label>
+        </div>
+
+        <button type="submit" id="btnRegisterSubmit" class="btn btn-primary" style="margin-top: 8px;">
           ➕ Register User Account
         </button>
       </form>
@@ -99,8 +106,9 @@
     </a>
   </nav>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/js/api.js?v=2.1.0"></script>
+  <script src="/js/webauthn.js?v=2.1.0"></script>
+  <script src="/js/app.js?v=2.1.0"></script>
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
       try {
@@ -117,20 +125,40 @@
 
     document.getElementById('registerForm').addEventListener('submit', async (e) => {
       e.preventDefault();
-      const user_id = document.getElementById('user_id').value;
-      const full_name = document.getElementById('full_name').value;
-      const email = document.getElementById('email').value;
-      const phone = document.getElementById('phone').value;
-      const password = document.getElementById('password').value;
+      const user_id = document.getElementById('user_id').value.trim();
+      const full_name = document.getElementById('full_name').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const enrollPasskey = document.getElementById('reg_enroll_passkey').checked;
+
+      const btn = document.getElementById('btnRegisterSubmit');
+      btn.disabled = true;
+      btn.textContent = 'Creating Account...';
 
       try {
         const res = await API.adminCreateUser({ user_id, full_name, email, phone, password });
         if (res.success) {
           App.showAlert(res.message, 'success');
           document.getElementById('registerForm').reset();
+
+          if (enrollPasskey) {
+            App.showAlert(`Prompting biometric sensor for ${full_name}...`, 'info');
+            try {
+              const passkeyRes = await WebAuthnService.enrollPasskeyForUser(user_id, `${full_name} Passkey`);
+              if (passkeyRes.success) {
+                App.showAlert(`🎉 Account created and Biometric Passkey registered successfully!`, 'success');
+              }
+            } catch (pErr) {
+              App.showAlert(`User created, but biometric enrollment failed: ${pErr.message}`, 'warning');
+            }
+          }
         }
       } catch (err) {
         App.showAlert(err.message, 'danger');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '➕ Register User Account';
       }
     });
   </script>

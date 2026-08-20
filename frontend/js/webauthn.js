@@ -138,5 +138,34 @@ const WebAuthnService = {
       },
       clientExtensionResults: credential.getClientExtensionResults()
     };
+  },
+
+  /**
+   * One-Step Direct Passkey Enrollment for a specific or current user.
+   * Handles obtaining challenge, triggering hardware biometric prompt, and saving credential.
+   */
+  async enrollPasskeyForUser(user_id, custom_credential_name) {
+    if (!this.isSupported()) {
+      throw new Error("Biometric passkeys are not supported on this browser/device.");
+    }
+
+    // 1. Fetch registration options from server
+    const optRes = await API.getWebAuthnRegisterOptions(user_id);
+    if (!optRes.success || !optRes.options) {
+      throw new Error(optRes.message || 'Failed to initialize biometric challenge from server.');
+    }
+
+    // 2. Prompt device biometric
+    const credential = await this.registerPasskey(optRes.options);
+
+    // 3. Verify and persist on server
+    const credName = custom_credential_name || `${optRes.full_name || user_id || 'Device'} Biometric Key`;
+    const verifyRes = await API.verifyWebAuthnRegister(credential, credName, user_id);
+    if (!verifyRes.success) {
+      throw new Error(verifyRes.message || 'Server rejected passkey verification.');
+    }
+
+    return verifyRes;
   }
 };
+

@@ -239,6 +239,13 @@
               <option value="admin">System Administrator</option>
             </select>
           </div>
+
+          <div class="form-group" style="grid-column: 1 / -1; margin-top: 4px; background: rgba(59, 130, 246, 0.12); padding: 12px 14px; border-radius: var(--radius-md); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; gap: 10px;">
+            <input type="checkbox" id="add_enroll_passkey" style="width: 18px; height: 18px; cursor: pointer;" checked>
+            <label for="add_enroll_passkey" style="font-size: 0.85rem; cursor: pointer; color: var(--text-main); font-weight: 500;">
+              ⚡ Prompt & Enroll Biometric Passkey on this device in 1-step after creating user
+            </label>
+          </div>
         </div>
 
         <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; border-top: 1px solid var(--card-border); padding-top: 14px;">
@@ -555,6 +562,7 @@
         const phone = document.getElementById('add_phone').value.trim();
         const password = document.getElementById('add_password').value.trim();
         const role = document.getElementById('add_role').value;
+        const enrollPasskey = document.getElementById('add_enroll_passkey').checked;
 
         const btn = document.getElementById('btnSubmitAddUser');
         btn.disabled = true;
@@ -567,6 +575,12 @@
             document.getElementById('adminCreateUserForm').reset();
             closeModal('addUserModal');
             loadUsers();
+
+            if (enrollPasskey) {
+              setTimeout(() => {
+                oneClickRegisterPasskey(user_id, full_name);
+              }, 400);
+            }
           }
         } catch (err) {
           App.showAlert(err.message, 'danger');
@@ -702,8 +716,11 @@
           `;
 
           const passkeysHtml = u.credential_count > 0
-            ? `<button onclick="openPasskeysModal('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}')" class="btn btn-secondary" style="width:auto; padding:3px 8px; font-size:0.75rem; border-color: rgba(16,185,129,0.4); color: var(--success);" title="Manage Passkeys">🔑 ${u.credential_count} Key(s)</button>`
-            : `<button onclick="openPasskeysModal('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}')" class="btn btn-secondary" style="width:auto; padding:3px 8px; font-size:0.75rem; color: var(--text-dim);" title="Enroll Passkey">➕ None</button>`;
+            ? `<div style="display:flex; align-items:center; gap:4px;">
+                 <button onclick="openPasskeysModal('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}')" class="btn btn-secondary" style="width:auto; padding:3px 8px; font-size:0.75rem; border-color: rgba(16,185,129,0.4); color: var(--success);" title="Manage Passkeys">🔑 ${u.credential_count} Key(s)</button>
+                 <button onclick="oneClickRegisterPasskey('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}')" class="btn btn-secondary" style="width:auto; padding:3px 6px; font-size:0.75rem;" title="1-Click Enroll Another Device">➕</button>
+               </div>`
+            : `<button onclick="oneClickRegisterPasskey('${escapeAttr(u.user_id)}', '${escapeAttr(u.full_name)}')" class="btn btn-primary" style="width:auto; padding:3px 10px; font-size:0.75rem; font-weight:600;" title="Register Passkey on this device in 1 click">⚡ Enroll Now</button>`;
 
           const initials = getInitials(u.full_name);
           const avatarClass = isAdmin ? 'user-avatar admin-avatar' : 'user-avatar';
@@ -929,29 +946,27 @@
       }
     }
 
+    async function oneClickRegisterPasskey(user_id, full_name) {
+      try {
+        App.showAlert(`🔐 Initializing 1-step biometric passkey enrollment for ${full_name}...`, 'info');
+        const res = await WebAuthnService.enrollPasskeyForUser(user_id, `${full_name} Passkey`);
+        if (res.success) {
+          App.showAlert(`🎉 Biometric passkey registered successfully for ${full_name}!`, 'success');
+          loadUsers();
+          const modalUser = document.getElementById('passkeysModalUserId');
+          if (modalUser && modalUser.value === user_id) {
+            loadModalPasskeys(user_id);
+          }
+        }
+      } catch (err) {
+        App.showAlert(`Biometric enrollment: ${err.message}`, 'danger');
+      }
+    }
+
     async function handlePasskeyEnrollFromModal() {
       const user_id = document.getElementById('passkeysModalUserId').value;
       const full_name = document.getElementById('passkeysModalFullName').value;
-
-      try {
-        App.showAlert(`Generating biometric registration challenge for ${full_name}...`, 'info');
-        const optRes = await API.getWebAuthnRegisterOptions(user_id);
-        if (!optRes.success) throw new Error(optRes.message || 'Failed to get WebAuthn options.');
-
-        App.showAlert(`Scan fingerprint / Face ID for ${full_name} on your device...`, 'info');
-        const credential = await WebAuthnService.registerPasskey(optRes.options);
-
-        App.showAlert('Verifying and registering credential on server...', 'info');
-        const verifyRes = await API.verifyWebAuthnRegister(credential, `${full_name} Passkey`);
-
-        if (verifyRes.success) {
-          App.showAlert(`🎉 Passkey registered successfully for ${full_name}!`, 'success');
-          await loadModalPasskeys(user_id);
-          loadUsers();
-        }
-      } catch (err) {
-        App.showAlert(`Biometric enrollment failed: ${err.message}`, 'danger');
-      }
+      await oneClickRegisterPasskey(user_id, full_name);
     }
 
     async function deletePasskey(user_id, credential_id, isFromDetail = false) {

@@ -98,10 +98,10 @@
     </a>
   </nav>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/geo.js"></script>
-  <script src="/js/webauthn.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/js/api.js?v=2.1.0"></script>
+  <script src="/js/geo.js?v=2.1.0"></script>
+  <script src="/js/webauthn.js?v=2.1.0"></script>
+  <script src="/js/app.js?v=2.1.0"></script>
   <script>
     let currentPosData = null;
     let currentUserData = null;
@@ -196,6 +196,18 @@
         const optRes = await API.getWebAuthnLoginOptions(targetUserId, currentPosData);
 
         if (!optRes.success) {
+          if (optRes.message && optRes.message.includes('No biometric passkey registered')) {
+            const enrollNow = confirm('No biometric passkey is enrolled for your account on this device. Would you like to register your device biometric in 1 step now?');
+            if (enrollNow) {
+              App.showAlert('Scan fingerprint / Face ID to register this device...', 'info');
+              const regRes = await WebAuthnService.enrollPasskeyForUser(targetUserId);
+              if (regRes.success) {
+                App.showAlert('🎉 Passkey enrolled! Now initiating biometric authentication...', 'success');
+                setTimeout(triggerBiometricAuth, 800);
+                return;
+              }
+            }
+          }
           throw new Error(optRes.message || 'Server rejected location or options.');
         }
 
