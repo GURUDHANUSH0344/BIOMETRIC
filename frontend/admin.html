@@ -175,51 +175,62 @@
       });
     });
 
+    function setElText(id, val) {
+      const el = document.getElementById(id);
+      if (el) el.textContent = val;
+    }
+
     async function loadDashboardData() {
       try {
         const res = await API.getAdminDashboard();
         if (!res.success) throw new Error(res.message);
 
-        const stats = res.stats;
-        document.getElementById('statTotalUsers').textContent = stats.total_users;
-        document.getElementById('statActiveUsers').textContent = stats.active_users;
-        document.getElementById('statTodaySuccess').textContent = stats.today_success;
-        document.getElementById('statTodayAbsent').textContent = stats.today_absent || 0;
-        document.getElementById('statTodayFailed').textContent = stats.today_failed;
-        document.getElementById('statUsersInside').textContent = stats.users_inside_today;
+        const stats = res.stats || {};
+        setElText('statTotalUsers', stats.total_users ?? 0);
+        setElText('statActiveUsers', stats.active_users ?? 0);
+        setElText('statTodaySuccess', stats.today_success ?? 0);
+        setElText('statTodayAbsent', stats.today_absent ?? 0);
+        setElText('statTodayFailed', stats.today_failed ?? 0);
+        setElText('statUsersInside', stats.users_inside_today ?? 0);
 
         if (stats.avg_attendance_percentage !== undefined) {
           const avgEl = document.getElementById('statAvgAttendance');
-          avgEl.textContent = `${stats.avg_attendance_percentage}%`;
-          if (stats.avg_attendance_percentage >= 75) avgEl.style.color = 'var(--success)';
-          else if (stats.avg_attendance_percentage >= 50) avgEl.style.color = 'var(--warning)';
-          else avgEl.style.color = 'var(--danger)';
+          if (avgEl) {
+            avgEl.textContent = `${stats.avg_attendance_percentage}%`;
+            if (stats.avg_attendance_percentage >= 75) avgEl.style.color = 'var(--success)';
+            else if (stats.avg_attendance_percentage >= 50) avgEl.style.color = 'var(--warning)';
+            else avgEl.style.color = 'var(--danger)';
+          }
         }
 
         const tbody = document.getElementById('recentActivityTbody');
-        if (res.recent_activity && res.recent_activity.length > 0) {
-          tbody.innerHTML = res.recent_activity.map(item => {
-            let badgeClass = 'badge-danger';
-            if (item.result === 'SUCCESS') badgeClass = 'badge-success';
-            else if (item.result === 'OUTSIDE_RADIUS') badgeClass = 'badge-warning';
+        if (tbody) {
+          if (res.recent_activity && res.recent_activity.length > 0) {
+            tbody.innerHTML = res.recent_activity.map(item => {
+              let badgeClass = 'badge-danger';
+              if (item.result === 'SUCCESS') badgeClass = 'badge-success';
+              else if (item.result === 'OUTSIDE_RADIUS') badgeClass = 'badge-warning';
 
-            return `
-              <tr>
-                <td><strong>${escapeHtml(item.user_id)}</strong></td>
-                <td>${escapeHtml(item.full_name || item.user_id)}</td>
-                <td>${item.timestamp ? escapeHtml(item.timestamp) + ' IST' : '--'}</td>
-                <td>${item.calculated_distance !== null ? item.calculated_distance + 'm' : '--'}</td>
-                <td><span class="badge ${badgeClass}">${escapeHtml(item.result)}</span></td>
-                <td style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(item.failure_reason || 'Biometric verified inside geofence')}</td>
-              </tr>
-            `;
-          }).join('');
-        } else {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 20px;">No recent activity logged.</td></tr>';
+              return `
+                <tr>
+                  <td><strong>${escapeHtml(item.user_id)}</strong></td>
+                  <td>${escapeHtml(item.full_name || item.user_id)}</td>
+                  <td>${item.timestamp ? escapeHtml(item.timestamp) + ' IST' : '--'}</td>
+                  <td>${item.calculated_distance !== null ? item.calculated_distance + 'm' : '--'}</td>
+                  <td><span class="badge ${badgeClass}">${escapeHtml(item.result)}</span></td>
+                  <td style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(item.failure_reason || 'Biometric verified inside geofence')}</td>
+                </tr>
+              `;
+            }).join('');
+          } else {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-dim); padding: 20px;">No recent activity logged.</td></tr>';
+          }
         }
       } catch (err) {
-        App.showAlert(`Admin authentication failed: ${err.message}`, 'danger');
-        setTimeout(() => window.location.href = '/login.html', 1500);
+        App.showAlert(`Failed to load dashboard: ${err.message}`, 'danger');
+        if (err.message && (err.message.includes('Admin access required') || err.message.includes('Unauthorized') || err.message.includes('401'))) {
+          setTimeout(() => window.location.href = '/login.html', 1500);
+        }
       }
     }
 
@@ -232,7 +243,7 @@
         const slips = res.slips || [];
         const pendingSlips = slips.filter(s => s.status === 'PENDING_APPROVAL');
 
-        document.getElementById('lateSlipsCountBadge').textContent = `${pendingSlips.length} Pending`;
+        setElText('lateSlipsCountBadge', `${pendingSlips.length} Pending`);
 
         if (slips.length === 0) {
           tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-dim); padding: 16px;">No late arrival permission slips on record.</td></tr>';

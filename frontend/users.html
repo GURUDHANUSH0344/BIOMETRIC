@@ -782,11 +782,16 @@
       const blocked = users.filter(u => u.status === 'blocked_late').length;
       const passkeys = users.filter(u => u.credential_count > 0).length;
 
-      document.getElementById('kpiTotalUsers').textContent = total;
-      document.getElementById('kpiActiveUsers').textContent = active;
-      document.getElementById('kpiInactiveUsers').textContent = inactive;
-      document.getElementById('kpiBlockedUsers').textContent = blocked;
-      document.getElementById('kpiPasskeysCount').textContent = `${passkeys} (${total > 0 ? Math.round((passkeys/total)*100) : 0}%)`;
+      const setEl = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+      };
+
+      setEl('kpiTotalUsers', total);
+      setEl('kpiActiveUsers', active);
+      setEl('kpiInactiveUsers', inactive);
+      setEl('kpiBlockedUsers', blocked);
+      setEl('kpiPasskeysCount', `${passkeys} (${total > 0 ? Math.round((passkeys/total)*100) : 0}%)`);
     }
 
     // Modal Control Helpers
