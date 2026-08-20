@@ -6,11 +6,15 @@ venv/
 .venv/
 env/
 ENV/
+.pytest_cache/
 
 # Database & Log Artifacts
 *.db
 *.sqlite3
 *.log
+
+# Supabase Local Temp Files
+supabase/.temp/
 
 # IDE & OS Files
 .vscode/
@@ -23,4 +27,3 @@ Thumbs.db
 .mingit/
 scratch/
 *.zip
-
