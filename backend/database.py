@@ -13,6 +13,38 @@ except ImportError:
 def is_postgres():
     return bool(Config.DATABASE_URL and Config.DATABASE_URL.startswith("postgres"))
 
+class DBRow(dict):
+    """
+    Unified database row that supports both key-based access (row['col'])
+    and index-based access (row[0], row[1]) for 100% compatibility with SQLite & PostgreSQL.
+    """
+    def __init__(self, data=None):
+        if data:
+            clean_data = {}
+            for k, v in data.items():
+                if hasattr(v, 'isoformat') and not isinstance(v, str):
+                    clean_data[k] = str(v)
+                else:
+                    clean_data[k] = v
+            super().__init__(clean_data)
+            self._values = list(clean_data.values())
+        else:
+            super().__init__()
+            self._values = []
+
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self._values[item]
+        return super().__getitem__(item)
+
+    def get(self, key, default=None):
+        if isinstance(key, int):
+            try:
+                return self._values[key]
+            except IndexError:
+                return default
+        return super().get(key, default)
+
 class PostgresCursorWrapper:
     def __init__(self, cursor):
         self._cursor = cursor
@@ -26,11 +58,11 @@ class PostgresCursorWrapper:
 
     def fetchone(self):
         row = self._cursor.fetchone()
-        return dict(row) if row is not None else None
+        return DBRow(row) if row is not None else None
 
     def fetchall(self):
         rows = self._cursor.fetchall()
-        return [dict(r) for r in rows] if rows else []
+        return [DBRow(r) for r in rows] if rows else []
 
     def close(self):
         self._cursor.close()

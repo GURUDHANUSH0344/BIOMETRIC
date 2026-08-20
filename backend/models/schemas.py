@@ -985,19 +985,23 @@ def get_admin_logs(date_filter: str = None, status_filter: str = None, search: s
     """
     params = []
 
-    ist_today = get_ist_today()
+    ist_now_dt = datetime.now(timezone(timedelta(hours=5, minutes=30)))
+    ist_today = ist_now_dt.strftime('%Y-%m-%d')
     if date_filter == 'today':
         query += " AND DATE(l.timestamp) = ?"
         params.append(ist_today)
     elif date_filter == 'yesterday':
-        query += " AND DATE(l.timestamp) = date(?, '-1 day')"
-        params.append(ist_today)
+        yesterday_str = (ist_now_dt - timedelta(days=1)).strftime('%Y-%m-%d')
+        query += " AND DATE(l.timestamp) = ?"
+        params.append(yesterday_str)
     elif date_filter == 'last_7_days':
-        query += " AND DATE(l.timestamp) >= date(?, '-7 days')"
-        params.append(ist_today)
+        seven_days_str = (ist_now_dt - timedelta(days=7)).strftime('%Y-%m-%d')
+        query += " AND DATE(l.timestamp) >= ?"
+        params.append(seven_days_str)
     elif date_filter == 'last_30_days':
-        query += " AND DATE(l.timestamp) >= date(?, '-30 days')"
-        params.append(ist_today)
+        thirty_days_str = (ist_now_dt - timedelta(days=30)).strftime('%Y-%m-%d')
+        query += " AND DATE(l.timestamp) >= ?"
+        params.append(thirty_days_str)
 
     if status_filter and status_filter.lower() != 'all':
         query += " AND l.result = ?"

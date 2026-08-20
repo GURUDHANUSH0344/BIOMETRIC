@@ -18,16 +18,22 @@ admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 @admin_required
 def get_dashboard():
     """Returns overview statistics and recent authentication activity for admin dashboard."""
-    stats = get_dashboard_stats()
-    recent_logs = get_admin_logs(limit=10)
-    settings = get_geofence_settings()
+    try:
+        stats = get_dashboard_stats()
+        recent_logs = get_admin_logs(limit=10)
+        settings = get_geofence_settings()
 
-    return jsonify({
-        'success': True,
-        'stats': stats,
-        'recent_activity': recent_logs,
-        'geofence': settings
-    })
+        return jsonify({
+            'success': True,
+            'stats': stats,
+            'recent_activity': recent_logs,
+            'geofence': settings
+        })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Failed to load admin dashboard: {str(e)}'
+        }), 500
 
 @admin_bp.route('/users', methods=['GET'])
 @admin_required
