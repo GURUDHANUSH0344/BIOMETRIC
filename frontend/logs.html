@@ -92,8 +92,8 @@
     </div>
   </main>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/js/api.js?v=2.1.0"></script>
+  <script src="/js/app.js?v=2.1.0"></script>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       fetchLogs();
@@ -105,6 +105,7 @@
       if (btnProcess) {
         btnProcess.addEventListener('click', async () => {
           try {
+            App.showAlert('Processing daily absentees...', 'info');
             const res = await API.processAbsentees();
             if (res.success) {
               App.showAlert(res.message, 'success');
@@ -122,6 +123,7 @@
       const dateFilter = document.getElementById('dateFilterSelect').value;
       const status = document.getElementById('statusFilterSelect').value;
       const tbody = document.getElementById('logsTableBody');
+      if (!tbody) return;
 
       try {
         const res = await API.getAdminLogs(dateFilter, status, search);
@@ -139,13 +141,13 @@
 
           return `
             <tr>
-              <td>${log.timestamp ? log.timestamp + ' IST' : '--'}</td>
-              <td><strong>${log.user_id}</strong></td>
-              <td>${log.full_name || log.user_id}</td>
-              <td>${log.calculated_distance !== null ? log.calculated_distance + 'm' : '--'}</td>
-              <td>${log.gps_accuracy !== null ? log.gps_accuracy + 'm' : '--'}</td>
-              <td><span class="badge ${badgeClass}">${log.result}</span></td>
-              <td style="font-size: 0.8rem; color: var(--text-muted);">${log.failure_reason || 'Verified'}</td>
+              <td>${log.timestamp ? escapeHtml(log.timestamp) + ' IST' : '--'}</td>
+              <td><strong>${escapeHtml(log.user_id)}</strong></td>
+              <td>${escapeHtml(log.full_name || log.user_id)}</td>
+              <td>${log.calculated_distance !== null ? escapeHtml(log.calculated_distance) + 'm' : '--'}</td>
+              <td>${log.gps_accuracy !== null ? escapeHtml(log.gps_accuracy) + 'm' : '--'}</td>
+              <td><span class="badge ${badgeClass}">${escapeHtml(log.result)}</span></td>
+              <td style="font-size: 0.8rem; color: var(--text-muted);">${escapeHtml(log.failure_reason || 'Verified')}</td>
             </tr>
           `;
         }).join('');
