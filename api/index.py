@@ -17,6 +17,7 @@ try:
 except Exception as e:
     import traceback
     traceback.print_exc()
+    # pyrefly: ignore [missing-import]
     from flask import Flask, jsonify
     app = Flask(__name__)
     @app.route('/')
