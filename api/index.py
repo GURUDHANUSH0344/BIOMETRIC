@@ -16,7 +16,8 @@ try:
     from backend.app import app
 except Exception as e:
     import traceback
-    traceback.print_exc()
+    error_details = traceback.format_exc()
+    print(f"[VERCEL STARTUP ERROR]\n{error_details}", file=sys.stderr)
     # pyrefly: ignore [missing-import]
     from flask import Flask, jsonify
     app = Flask(__name__)
@@ -26,8 +27,10 @@ except Exception as e:
         return jsonify({
             'success': False,
             'error': 'Serverless Initialization Exception',
-            'details': str(e)
+            'details': str(e),
+            'traceback': error_details
         }), 500
 
 # Vercel WSGI entrypoint
 app = app
+
