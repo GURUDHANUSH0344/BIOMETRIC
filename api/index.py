@@ -12,7 +12,21 @@ if os.getenv("VERCEL"):
     from backend.config import Config
     Config.DATABASE_PATH = "/tmp/geofence_bio.db"
 
-from backend.app import app
+try:
+    from backend.app import app
+except Exception as e:
+    import traceback
+    traceback.print_exc()
+    from flask import Flask, jsonify
+    app = Flask(__name__)
+    @app.route('/')
+    @app.route('/<path:path>')
+    def error_fallback(path=""):
+        return jsonify({
+            'success': False,
+            'error': 'Serverless Initialization Exception',
+            'details': str(e)
+        }), 500
 
 # Vercel WSGI entrypoint
 app = app

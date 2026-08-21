@@ -84,10 +84,13 @@ def create_app():
     @app.route('/<path:filename>')
     def serve_frontend_files(filename):
         target_path = frontend_dir / filename
-        if target_path.exists():
+        if target_path.exists() and not target_path.is_dir():
             return send_from_directory(str(frontend_dir), filename)
-        # Fallback to index.html for SPA / client routes
-        return send_from_directory(str(frontend_dir), 'index.html')
+        # Fallback to index.html for SPA / client routes if present
+        index_path = frontend_dir / 'index.html'
+        if index_path.exists():
+            return send_from_directory(str(frontend_dir), 'index.html')
+        return jsonify({'error': 'Not found'}), 404
 
     return app
 
