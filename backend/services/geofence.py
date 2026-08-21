@@ -1,4 +1,5 @@
 import math
+from typing import Any, Dict, Optional
 
 EARTH_RADIUS_METERS = 6371000.0
 
@@ -8,9 +9,6 @@ def calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: fl
     specified in decimal degrees using the Haversine formula.
     Returns distance in meters.
     """
-    # Convert inputs to float
-    lat1, lon1, lat2, lon2 = float(lat1), float(lon1), float(lat2), float(lon2)
-
     # Convert decimal degrees to radians
     phi1 = math.radians(lat1)
     phi2 = math.radians(lat2)
@@ -28,7 +26,7 @@ def calculate_haversine_distance(lat1: float, lon1: float, lat2: float, lon2: fl
     distance = EARTH_RADIUS_METERS * c
     return round(distance, 2)
 
-def validate_coordinates(lat: float, lon: float) -> bool:
+def validate_coordinates(lat: Any, lon: Any) -> bool:
     """Validates that latitude and longitude are within standard geographical boundaries."""
     if lat is None or lon is None:
         return False
@@ -39,7 +37,12 @@ def validate_coordinates(lat: float, lon: float) -> bool:
     except (ValueError, TypeError):
         return False
 
-def verify_location(user_lat: float, user_lon: float, gps_accuracy: float, geofence_settings: dict) -> dict:
+def verify_location(
+    user_lat: Any,
+    user_lon: Any,
+    gps_accuracy: Any = None,
+    geofence_settings: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
     """
     Independently verifies user's physical proximity on the server.
     """
