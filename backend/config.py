@@ -67,10 +67,10 @@ class Config:
     
     # Default Geofence Config
     DEFAULT_LOCATION_NAME = os.getenv("DEFAULT_LOCATION_NAME", "FXEC Campus Site")
-    DEFAULT_LATITUDE = float(os.getenv("DEFAULT_LATITUDE", "8.732309"))
-    DEFAULT_LONGITUDE = float(os.getenv("DEFAULT_LONGITUDE", "77.723764"))
-    DEFAULT_RADIUS_METERS = float(os.getenv("DEFAULT_RADIUS_METERS", "500.0"))
-    DEFAULT_MAX_GPS_ACCURACY = float(os.getenv("DEFAULT_MAX_GPS_ACCURACY", "200.0"))
+    DEFAULT_LATITUDE = float(os.getenv("DEFAULT_LATITUDE") or "8.732309")
+    DEFAULT_LONGITUDE = float(os.getenv("DEFAULT_LONGITUDE") or "77.723764")
+    DEFAULT_RADIUS_METERS = float(os.getenv("DEFAULT_RADIUS_METERS") or "500.0")
+    DEFAULT_MAX_GPS_ACCURACY = float(os.getenv("DEFAULT_MAX_GPS_ACCURACY") or "200.0")
     
     # Admin Seed Credentials
     ADMIN_USER_ID = os.getenv("ADMIN_USER_ID", "admin")
