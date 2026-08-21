@@ -1,3 +1,7 @@
+# Environment Variables (never deploy these)
+.env
+.env.local
+
 # Python & Environment Cache
 __pycache__/
 *.py[cod]
