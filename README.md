@@ -186,6 +186,48 @@ All 11 unit and integration tests verify:
 
 ---
 
-## 10. License
+## 10. Deploying to Vercel
+
+The application is fully configured for deployment on **Vercel** serverless infrastructure using `@vercel/python`.
+
+### Step 1 — Import to Vercel
+1. Push your code to GitHub / GitLab / Bitbucket.
+2. In the [Vercel Dashboard](https://vercel.com/dashboard), click **"Add New..."** → **"Project"** and import your repository.
+3. Vercel automatically detects `vercel.json` and `api/index.py`.
+
+### Step 2 — Configure Environment Variables in Vercel
+In **Project Settings → Environment Variables**, configure the following:
+
+| Variable | Recommended Production Value | Description |
+| :--- | :--- | :--- |
+| `DATABASE_URL` | `postgresql://postgres.[ref]:[pw]@aws-0-[region].pooler.supabase.com:6543/postgres` | Supabase / PostgreSQL connection pooler (IPv4 compatible) |
+| `SECRET_KEY` | *(Generate a 64+ char random string)* | Flask session secret key |
+| `SESSION_COOKIE_SECURE` | `True` | Enforces HTTPS-only session cookies |
+| `WEBAUTHN_RP_ID` | `your-project.vercel.app` *(or your custom domain)* | Relying Party domain for WebAuthn passkeys |
+| `WEBAUTHN_ORIGIN` | `https://your-project.vercel.app` *(or https://yourdomain.com)* | Full HTTPS origin for WebAuthn authentication |
+| `ADMIN_PASSWORD` | *(Your secure admin password)* | Initial default administrator password |
+| `ADMIN_EMAIL` | `admin@yourdomain.com` | Initial default administrator email |
+
+> [!NOTE]
+> If `WEBAUTHN_RP_ID` and `WEBAUTHN_ORIGIN` are not explicitly provided in environment variables, the system will automatically auto-detect your active Vercel production domain from `VERCEL_PROJECT_PRODUCTION_URL` or `VERCEL_URL`.
+
+### Step 3 — Deploy via Vercel CLI (Alternative)
+You can also deploy directly from your terminal using the Vercel CLI:
+
+```bash
+# Install Vercel CLI (if not already installed)
+npm install -g vercel
+
+# Log in and deploy preview
+vercel
+
+# Deploy directly to production
+vercel --prod
+```
+
+---
+
+## 11. License
 
 Developed for Secure Geo-Fenced Biometric Attendance & Authentication.
+

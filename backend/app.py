@@ -7,8 +7,12 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# pyrefly: ignore [missing-import]
 from flask import Flask, send_from_directory, jsonify, session
+# pyrefly: ignore [missing-import]
 from flask_cors import CORS
+# pyrefly: ignore [missing-import]
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from backend.config import Config
 from backend.database import init_db
@@ -28,8 +32,12 @@ def create_app():
     app = Flask(__name__, static_folder=str(frontend_dir), static_url_path="")
     app.config.from_object(Config)
 
+    # Enable ProxyFix to correctly interpret reverse proxy headers (Vercel, Nginx, etc.)
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     # Enable CORS for local development and session credentials
-    CORS(app, supports_credentials=True, origins=[Config.WEBAUTHN_ORIGIN, "http://localhost:5000", "http://127.0.0.1:5000"])
+    cors_origins = list(set([Config.WEBAUTHN_ORIGIN, "http://localhost:5000", "http://127.0.0.1:5000"]))
+    CORS(app, supports_credentials=True, origins=cors_origins)
 
     # Initialize SQLite Database
     init_db()

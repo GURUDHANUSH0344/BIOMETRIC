@@ -1,6 +1,9 @@
 import json
+# pyrefly: ignore [missing-import]
 import webauthn
+# pyrefly: ignore [missing-import]
 from flask import has_request_context, request
+# pyrefly: ignore [missing-import]
 from webauthn.helpers import structs
 from backend.config import Config
 from backend.utils.serializers import bytes_to_base64url, base64url_to_bytes

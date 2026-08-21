@@ -1,6 +1,7 @@
 import os
 import urllib.parse
 from pathlib import Path
+# pyrefly: ignore [missing-import]
 from dotenv import load_dotenv
 
 # Load environment variables from .env if present
@@ -41,7 +42,7 @@ class Config:
     
     # Database Configuration (Supabase / PostgreSQL / SQLite)
     DATABASE_URL = sanitize_database_url(os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL") or os.getenv("POSTGRES_URL"))
-    DATABASE_PATH = os.getenv("DATABASE_PATH", str(BASE_DIR / "database" / "geofence_bio.db"))
+    DATABASE_PATH = os.getenv("DATABASE_PATH", "/tmp/geofence_bio.db" if os.getenv("VERCEL") else str(BASE_DIR / "database" / "geofence_bio.db"))
     
     # MySQL Configuration (Legacy)
     MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
@@ -49,10 +50,20 @@ class Config:
     MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
     MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "fxec_biometric")
     
+    # Detect Vercel Serverless Environment
+    IS_VERCEL = bool(os.getenv("VERCEL"))
+
     # WebAuthn Configuration
-    WEBAUTHN_RP_ID = os.getenv("WEBAUTHN_RP_ID", "localhost")
+    # Automatically resolve domain from Vercel system variables if not explicitly provided
+    _detected_host = os.getenv("VERCEL_PROJECT_PRODUCTION_URL") or os.getenv("VERCEL_URL")
+    if _detected_host and "://" in _detected_host:
+        _detected_host = urllib.parse.urlparse(_detected_host).netloc or _detected_host
+
+    WEBAUTHN_RP_ID = os.getenv("WEBAUTHN_RP_ID") or _detected_host or "localhost"
     WEBAUTHN_RP_NAME = os.getenv("WEBAUTHN_RP_NAME", "FXEC BIOMETRIC Auth System")
-    WEBAUTHN_ORIGIN = os.getenv("WEBAUTHN_ORIGIN", "http://localhost:5000")
+    WEBAUTHN_ORIGIN = os.getenv("WEBAUTHN_ORIGIN") or (
+        f"https://{WEBAUTHN_RP_ID}" if (IS_VERCEL or _detected_host) else "http://localhost:5000"
+    )
     
     # Default Geofence Config
     DEFAULT_LOCATION_NAME = os.getenv("DEFAULT_LOCATION_NAME", "FXEC Campus Site")
@@ -71,4 +82,4 @@ class Config:
     # Session Security
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
-    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "False").lower() in ("true", "1", "t")
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", str(IS_VERCEL)).lower() in ("true", "1", "t")

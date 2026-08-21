@@ -4,7 +4,9 @@ from pathlib import Path
 from backend.config import Config
 
 try:
+    # pyrefly: ignore [missing-import]
     import psycopg2
+    # pyrefly: ignore [missing-import]
     from psycopg2.extras import RealDictCursor
     PSYCOPG2_AVAILABLE = True
 except ImportError:

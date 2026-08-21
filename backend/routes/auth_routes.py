@@ -1,3 +1,4 @@
+# pyrefly: ignore [missing-import]
 from flask import Blueprint, request, jsonify, session
 from backend.models.schemas import (
     create_user, get_user_by_id, get_user_by_email, get_user_by_id_or_email,
