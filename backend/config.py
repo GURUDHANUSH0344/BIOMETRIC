@@ -38,17 +38,17 @@ def sanitize_database_url(url: str) -> str:
     return url
 
 class Config:
-    SECRET_KEY = os.getenv("SECRET_KEY", "geofence_biometric_super_secret_key_change_in_production_2026")
+    SECRET_KEY = os.getenv("SECRET_KEY") or "geofence_biometric_super_secret_key_change_in_production_2026"
     
     # Database Configuration (Supabase / PostgreSQL / SQLite)
     DATABASE_URL = sanitize_database_url(os.getenv("DATABASE_URL") or os.getenv("SUPABASE_DB_URL") or os.getenv("POSTGRES_URL"))
-    DATABASE_PATH = os.getenv("DATABASE_PATH", "/tmp/geofence_bio.db" if os.getenv("VERCEL") else str(BASE_DIR / "database" / "geofence_bio.db"))
+    DATABASE_PATH = os.getenv("DATABASE_PATH") or ("/tmp/geofence_bio.db" if os.getenv("VERCEL") else str(BASE_DIR / "database" / "geofence_bio.db"))
     
     # MySQL Configuration (Legacy)
-    MYSQL_HOST = os.getenv("MYSQL_HOST", "localhost")
-    MYSQL_USER = os.getenv("MYSQL_USER", "root")
-    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD", "")
-    MYSQL_DATABASE = os.getenv("MYSQL_DATABASE", "fxec_biometric")
+    MYSQL_HOST = os.getenv("MYSQL_HOST") or "localhost"
+    MYSQL_USER = os.getenv("MYSQL_USER") or "root"
+    MYSQL_PASSWORD = os.getenv("MYSQL_PASSWORD") or ""
+    MYSQL_DATABASE = os.getenv("MYSQL_DATABASE") or "fxec_biometric"
     
     # Detect Vercel Serverless Environment
     IS_VERCEL = bool(os.getenv("VERCEL"))
@@ -60,24 +60,24 @@ class Config:
         _detected_host = urllib.parse.urlparse(_detected_host).netloc or _detected_host
 
     WEBAUTHN_RP_ID = os.getenv("WEBAUTHN_RP_ID") or _detected_host or "localhost"
-    WEBAUTHN_RP_NAME = os.getenv("WEBAUTHN_RP_NAME", "FXEC BIOMETRIC Auth System")
+    WEBAUTHN_RP_NAME = os.getenv("WEBAUTHN_RP_NAME") or "FXEC BIOMETRIC Auth System"
     WEBAUTHN_ORIGIN = os.getenv("WEBAUTHN_ORIGIN") or (
         f"https://{WEBAUTHN_RP_ID}" if (IS_VERCEL or _detected_host) else "http://localhost:5000"
     )
     
     # Default Geofence Config
-    DEFAULT_LOCATION_NAME = os.getenv("DEFAULT_LOCATION_NAME", "FXEC Campus Site")
+    DEFAULT_LOCATION_NAME = os.getenv("DEFAULT_LOCATION_NAME") or "FXEC Campus Site"
     DEFAULT_LATITUDE = float(os.getenv("DEFAULT_LATITUDE") or "8.732309")
     DEFAULT_LONGITUDE = float(os.getenv("DEFAULT_LONGITUDE") or "77.723764")
     DEFAULT_RADIUS_METERS = float(os.getenv("DEFAULT_RADIUS_METERS") or "500.0")
     DEFAULT_MAX_GPS_ACCURACY = float(os.getenv("DEFAULT_MAX_GPS_ACCURACY") or "200.0")
     
     # Admin Seed Credentials
-    ADMIN_USER_ID = os.getenv("ADMIN_USER_ID", "admin")
-    ADMIN_FULL_NAME = os.getenv("ADMIN_FULL_NAME", "System Administrator")
-    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "admin@geofence.local")
-    ADMIN_PHONE = os.getenv("ADMIN_PHONE", "+10000000000")
-    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "Admin@123456")
+    ADMIN_USER_ID = os.getenv("ADMIN_USER_ID") or "admin"
+    ADMIN_FULL_NAME = os.getenv("ADMIN_FULL_NAME") or "System Administrator"
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL") or "admin@geofence.local"
+    ADMIN_PHONE = os.getenv("ADMIN_PHONE") or "+10000000000"
+    ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD") or "Admin@123456"
     
     # Session Security
     SESSION_COOKIE_HTTPONLY = True
