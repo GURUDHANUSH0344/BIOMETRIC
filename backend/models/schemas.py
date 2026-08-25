@@ -24,16 +24,16 @@ def get_ist_today() -> str:
 # User Model Operations
 # ==============================================================================
 
-def create_user(user_id: str, full_name: str, email: str, phone: str, password_hash: str, role: str = 'user', status: str = 'active') -> dict:
+def create_user(user_id: str, full_name: str, email: str, phone: str, password_hash: str, role: str = 'user', status: str = 'active') -> Optional[dict]:
     if not user_id or not email:
         raise ValueError("User ID and Email are required.")
 
-    u_id = str(user_id).strip()
-    f_name = str(full_name).strip() if full_name else ''
-    u_email = str(email).strip().lower()
-    u_phone = str(phone).strip() if phone else ''
-    clean_role = str(role).strip().lower() if role else 'user'
-    clean_status = str(status).strip().lower() if status else 'active'
+    u_id = (user_id or '').strip()
+    f_name = (full_name or '').strip()
+    u_email = (email or '').strip().lower()
+    u_phone = (phone or '').strip()
+    clean_role = (role or 'user').strip().lower()
+    clean_status = (status or 'active').strip().lower()
 
     if not f_name:
         raise ValueError("Full Name is required.")
@@ -62,36 +62,36 @@ def create_user(user_id: str, full_name: str, email: str, phone: str, password_h
     finally:
         conn.close()
 
-def get_user_by_id(user_id: str) -> dict:
+def get_user_by_id(user_id: Optional[str]) -> Optional[dict]:
     if user_id is None:
         return None
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE user_id = ?", (str(user_id).strip(),))
+    cursor.execute("SELECT * FROM users WHERE user_id = ?", (user_id.strip(),))
     row = cursor.fetchone()
     conn.close()
     return row_to_dict(row)
 
-def get_user_by_email(email: str) -> dict:
+def get_user_by_email(email: Optional[str]) -> Optional[dict]:
     if email is None:
         return None
     conn = get_db_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (str(email).strip(),))
+    cursor.execute("SELECT * FROM users WHERE LOWER(email) = LOWER(?)", (email.strip(),))
     row = cursor.fetchone()
     conn.close()
     return row_to_dict(row)
 
-def get_user_by_id_or_email(identifier: str) -> dict:
+def get_user_by_id_or_email(identifier: Optional[str]) -> Optional[dict]:
     if not identifier:
         return None
-    clean = str(identifier).strip()
+    clean = identifier.strip()
     user = get_user_by_id(clean)
     if not user:
         user = get_user_by_email(clean)
     return user
 
-def get_all_users(search_query: str = None, status_filter: str = None, role_filter: str = None, sort_by: str = None) -> list:
+def get_all_users(search_query: Optional[str] = None, status_filter: Optional[str] = None, role_filter: Optional[str] = None, sort_by: Optional[str] = None) -> list:
     """Returns a list of all users with passkey count, present days, attendance percentage, and last auth."""
     conn = get_db_connection()
     cursor = conn.cursor()
@@ -156,7 +156,7 @@ def get_all_users(search_query: str = None, status_filter: str = None, role_filt
 
     return user_list
 
-def get_user_full_details(user_id: str) -> dict:
+def get_user_full_details(user_id: str) -> Optional[dict]:
     """Returns detailed user profile including credentials, attendance summary, today's punch, logs, and late slips."""
     user = get_user_by_id(user_id)
     if not user:
@@ -182,7 +182,7 @@ def get_user_full_details(user_id: str) -> dict:
     }
 
 def update_user_status(user_id: str, status: str) -> bool:
-    clean_status = str(status).strip().lower()
+    clean_status = (status or '').strip().lower()
     if clean_status not in ['active', 'inactive', 'blocked_late']:
         raise ValueError("Invalid status. Must be 'active', 'inactive', or 'blocked_late'.")
 
@@ -194,7 +194,7 @@ def update_user_status(user_id: str, status: str) -> bool:
     conn.close()
     return affected > 0
 
-def update_user_details(user_id: str, new_user_id: str = None, full_name: str = None, email: str = None, phone: str = None, role: str = None, status: str = None, new_password: str = None) -> dict:
+def update_user_details(user_id: str, new_user_id: Optional[str] = None, full_name: Optional[str] = None, email: Optional[str] = None, phone: Optional[str] = None, role: Optional[str] = None, status: Optional[str] = None, new_password: Optional[str] = None) -> Optional[dict]:
     from backend.utils.security import hash_password
 
     user = get_user_by_id(user_id)
@@ -208,7 +208,7 @@ def update_user_details(user_id: str, new_user_id: str = None, full_name: str = 
 
     # Handle User ID change & cascade update across tables atomically
     if new_user_id is not None:
-        clean_new_id = str(new_user_id).strip()
+        clean_new_id = new_user_id.strip()
         if not clean_new_id:
             conn.close()
             raise ValueError("User ID / Roll No cannot be empty.")
@@ -239,7 +239,7 @@ def update_user_details(user_id: str, new_user_id: str = None, full_name: str = 
     params = []
 
     if full_name is not None:
-        clean_name = str(full_name).strip()
+        clean_name = full_name.strip()
         if not clean_name:
             conn.close()
             raise ValueError("Full Name cannot be empty.")
@@ -247,7 +247,7 @@ def update_user_details(user_id: str, new_user_id: str = None, full_name: str = 
         params.append(clean_name)
 
     if email is not None:
-        clean_email = str(email).strip().lower()
+        clean_email = email.strip().lower()
         if not clean_email:
             conn.close()
             raise ValueError("Email Address cannot be empty.")
@@ -259,7 +259,7 @@ def update_user_details(user_id: str, new_user_id: str = None, full_name: str = 
         params.append(clean_email)
 
     if phone is not None:
-        clean_phone = str(phone).strip()
+        clean_phone = phone.strip()
         if not clean_phone:
             conn.close()
             raise ValueError("Phone Number cannot be empty.")
@@ -267,7 +267,7 @@ def update_user_details(user_id: str, new_user_id: str = None, full_name: str = 
         params.append(clean_phone)
 
     if role is not None:
-        clean_role = str(role).strip().lower()
+        clean_role = role.strip().lower()
         if clean_role not in ['user', 'admin']:
             conn.close()
             raise ValueError("Invalid role. Must be 'user' or 'admin'.")
@@ -275,15 +275,15 @@ def update_user_details(user_id: str, new_user_id: str = None, full_name: str = 
         params.append(clean_role)
 
     if status is not None:
-        clean_status = str(status).strip().lower()
+        clean_status = status.strip().lower()
         if clean_status not in ['active', 'inactive', 'blocked_late']:
             conn.close()
             raise ValueError("Invalid status. Must be 'active', 'inactive', or 'blocked_late'.")
         updates.append("status = ?")
         params.append(clean_status)
 
-    if new_password is not None and str(new_password).strip():
-        pw_hash = hash_password(str(new_password).strip())
+    if new_password is not None and new_password.strip():
+        pw_hash = hash_password(new_password.strip())
         updates.append("password_hash = ?")
         params.append(pw_hash)
 
@@ -297,7 +297,7 @@ def update_user_details(user_id: str, new_user_id: str = None, full_name: str = 
     conn.close()
     return get_user_by_id(target_user_id)
 
-def update_own_profile(user_id: str, full_name: str = None, email: str = None, phone: str = None) -> dict:
+def update_own_profile(user_id: str, full_name: Optional[str] = None, email: Optional[str] = None, phone: Optional[str] = None) -> Optional[dict]:
     """Updates user's own profile (full name, email, phone) without role/status changes."""
     user = get_user_by_id(user_id)
     if not user:
@@ -310,7 +310,7 @@ def update_own_profile(user_id: str, full_name: str = None, email: str = None, p
     params = []
 
     if full_name is not None:
-        clean_name = str(full_name).strip()
+        clean_name = full_name.strip()
         if not clean_name:
             conn.close()
             raise ValueError("Full Name cannot be empty.")
@@ -318,7 +318,7 @@ def update_own_profile(user_id: str, full_name: str = None, email: str = None, p
         params.append(clean_name)
 
     if email is not None:
-        clean_email = str(email).strip().lower()
+        clean_email = email.strip().lower()
         if not clean_email:
             conn.close()
             raise ValueError("Email cannot be empty.")
@@ -330,7 +330,7 @@ def update_own_profile(user_id: str, full_name: str = None, email: str = None, p
         params.append(clean_email)
 
     if phone is not None:
-        clean_phone = str(phone).strip()
+        clean_phone = phone.strip()
         if not clean_phone:
             conn.close()
             raise ValueError("Phone number cannot be empty.")
@@ -363,15 +363,15 @@ def delete_user(user_id: str) -> bool:
     conn.close()
     return affected > 0
 
-def reset_user_password(user_id_or_email: str, phone: str, new_password: str) -> dict:
+def reset_user_password(user_id_or_email: str, phone: str, new_password: str) -> Optional[dict]:
     """Verifies user by User ID/Email and phone number, then resets their account password."""
     user = verify_user_phone(user_id_or_email, phone)
     return update_user_password_direct(user['user_id'], new_password)
 
 def verify_user_phone(user_id_or_email: str, phone: str) -> dict:
     """Verifies user exists and phone matches registered user record."""
-    clean_id = str(user_id_or_email).strip()
-    clean_phone = str(phone).strip()
+    clean_id = (user_id_or_email or '').strip()
+    clean_phone = (phone or '').strip()
 
     if not clean_id or not clean_phone:
         raise ValueError("User ID / Email and Phone Number are required.")
@@ -395,11 +395,11 @@ def verify_user_phone(user_id_or_email: str, phone: str) -> dict:
 
     return user
 
-def update_user_password_direct(user_id: str, new_password: str) -> dict:
+def update_user_password_direct(user_id: str, new_password: str) -> Optional[dict]:
     """Updates user password hash directly by user_id."""
     from backend.utils.security import hash_password
 
-    clean_pw = str(new_password).strip()
+    clean_pw = (new_password or '').strip()
     if not clean_pw:
         raise ValueError("New password cannot be empty.")
 
@@ -427,7 +427,7 @@ def verify_and_update_user_password(user_id: str, current_password: str, new_pas
     if not verify_password(current_password, user['password_hash']):
         raise ValueError("Current password is incorrect.")
 
-    clean_new = str(new_password).strip()
+    clean_new = (new_password or '').strip()
     if not clean_new or len(clean_new) < 6:
         raise ValueError("New password must be at least 6 characters long.")
 
@@ -443,11 +443,11 @@ def verify_and_update_user_password(user_id: str, current_password: str, new_pas
 # OTP Password Reset Management
 # ==============================================================================
 
-def generate_and_store_otp(user_id_or_email: str, phone: str = None) -> dict:
+def generate_and_store_otp(user_id_or_email: str, phone: Optional[str] = None) -> dict:
     """Finds user by registered email ID or User ID, fetches the linked registered phone number, and sends a 6-digit OTP."""
     from backend.services.sms_service import send_sms_otp
 
-    clean_id = str(user_id_or_email).strip()
+    clean_id = (user_id_or_email or '').strip()
     if not clean_id:
         raise ValueError("Registered Email ID or User ID is required.")
 
@@ -465,8 +465,8 @@ def generate_and_store_otp(user_id_or_email: str, phone: str = None) -> dict:
         raise ValueError("No mobile number is linked with this registered email. Please contact administrator.")
 
     # If user provided a phone number to verify, ensure it matches the linked phone
-    if phone and str(phone).strip():
-        digits_input = ''.join(filter(str.isdigit, str(phone).strip()))
+    if phone and phone.strip():
+        digits_input = ''.join(filter(str.isdigit, phone.strip()))
         digits_user = ''.join(filter(str.isdigit, user_phone))
         if digits_input and digits_input not in digits_user and digits_user not in digits_input:
             raise ValueError("Provided phone number does not match the registered phone number linked with this email.")
@@ -522,7 +522,7 @@ def verify_otp_and_reset_password(user_id_or_email: str, otp: str, new_password:
         _OTP_STORE.pop(u_id, None)
         raise ValueError("Too many failed attempts. Please request a new OTP.")
 
-    if str(record['otp']).strip() != str(otp).strip():
+    if record['otp'].strip() != otp.strip():
         record['attempts'] = record.get('attempts', 0) + 1
         raise ValueError("Invalid 6-digit OTP code.")
 
@@ -607,14 +607,14 @@ def calculate_periods_status(punch_in: Optional[str] = None, punch_out: Optional
     except Exception:
         return [{'period': i, 'status': 'PRESENT' if i <= 4 else 'ABSENT', 'label': f'P{i}'} for i in range(1, 8)]
 
-def process_daily_absentees(target_date: str = None) -> dict:
+def process_daily_absentees(target_date: Optional[str] = None) -> dict:
     """
     Records ABSENT status for active users who did not punch in on target_date (default: today in IST).
     """
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    t_date = str(target_date).strip() if target_date else get_ist_today()
+    t_date = target_date.strip() if target_date else get_ist_today()
 
     cursor.execute("SELECT user_id, full_name, email FROM users WHERE role = 'user' AND status = 'active'")
     active_users = rows_to_list(cursor.fetchall())
@@ -817,7 +817,7 @@ def record_late_punch_in(user_id: str, in_time: str) -> dict:
     conn.close()
     return get_user_latest_late_slip(user_id)
 
-def get_user_latest_late_slip(user_id: str) -> dict:
+def get_user_latest_late_slip(user_id: str) -> Optional[dict]:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -831,8 +831,8 @@ def get_user_latest_late_slip(user_id: str) -> dict:
     conn.close()
     return row_to_dict(row)
 
-def update_late_slip_reason(user_id: str, slip_id: int, reason: str) -> dict:
-    clean_reason = str(reason).strip()
+def update_late_slip_reason(user_id: str, slip_id: int, reason: str) -> Optional[dict]:
+    clean_reason = (reason or '').strip()
     if not clean_reason:
         raise ValueError("Please provide a valid reason for late arrival.")
     conn = get_db_connection()
@@ -885,7 +885,7 @@ def admin_unblock_late_user(user_id: str, admin_id: str = 'admin') -> bool:
 # WebAuthn Credentials Model Operations
 # ==============================================================================
 
-def create_credential(user_id: str, credential_id: str, public_key: str, sign_count: int = 0, credential_name: str = "SmartDevice Passkey") -> dict:
+def create_credential(user_id: str, credential_id: str, public_key: str, sign_count: int = 0, credential_name: str = "SmartDevice Passkey") -> Optional[dict]:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -906,7 +906,7 @@ def get_credentials_by_user(user_id: str) -> list:
     conn.close()
     return rows_to_list(rows)
 
-def get_credential_by_id(credential_id: str) -> dict:
+def get_credential_by_id(credential_id: str) -> Optional[dict]:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM webauthn_credentials WHERE credential_id = ?", (credential_id,))
@@ -944,7 +944,7 @@ def delete_credential(user_id: str, credential_id: str) -> bool:
 # Geofence Settings Model Operations
 # ==============================================================================
 
-def get_geofence_settings() -> dict:
+def get_geofence_settings() -> Optional[dict]:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM geofence_settings ORDER BY id ASC LIMIT 1")
@@ -952,7 +952,7 @@ def get_geofence_settings() -> dict:
     conn.close()
     return row_to_dict(row)
 
-def update_geofence_settings(location_name: str, latitude: float, longitude: float, radius_meters: float, max_gps_accuracy_meters: float = 50.0, is_demo_mode: bool = False) -> dict:
+def update_geofence_settings(location_name: str, latitude: float, longitude: float, radius_meters: float, max_gps_accuracy_meters: float = 50.0, is_demo_mode: bool = False) -> Optional[dict]:
     conn = get_db_connection()
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM geofence_settings ORDER BY id ASC LIMIT 1")
@@ -980,7 +980,7 @@ def update_geofence_settings(location_name: str, latitude: float, longitude: flo
 # Authentication Logs Model Operations
 # ==============================================================================
 
-def log_authentication_event(user_id: str, latitude: float, longitude: float, gps_accuracy: float, calculated_distance: float, result: str, failure_reason: str = None, credential_id: str = None, ip_address: str = None, user_agent: str = None) -> dict:
+def log_authentication_event(user_id: str, latitude: float, longitude: float, gps_accuracy: float, calculated_distance: float, result: str, failure_reason: Optional[str] = None, credential_id: Optional[str] = None, ip_address: Optional[str] = None, user_agent: Optional[str] = None) -> Optional[dict]:
     conn = get_db_connection()
     cursor = conn.cursor()
     ist_time = get_ist_now()
@@ -1011,7 +1011,7 @@ def get_user_logs(user_id: str, limit: int = 100) -> list:
     conn.close()
     return rows_to_list(rows)
 
-def get_admin_logs(date_filter: str = None, status_filter: str = None, search: str = None, limit: int = 500) -> list:
+def get_admin_logs(date_filter: Optional[str] = None, status_filter: Optional[str] = None, search: Optional[str] = None, limit: int = 500) -> list:
     conn = get_db_connection()
     cursor = conn.cursor()
 
