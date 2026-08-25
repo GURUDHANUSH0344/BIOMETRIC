@@ -502,7 +502,7 @@ def generate_and_store_otp(user_id_or_email: str, phone: Optional[str] = None) -
         'message': f"OTP sent to registered phone ({masked_phone}) linked with {user['email']}."
     }
 
-def verify_otp_and_reset_password(user_id_or_email: str, otp: str, new_password: str) -> dict:
+def verify_otp_and_reset_password(user_id_or_email: str, otp: str, new_password: str) -> Optional[dict]:
     """Verifies OTP and updates the user's password."""
     user = get_user_by_id_or_email(user_id_or_email)
     if not user:
@@ -789,7 +789,7 @@ def calculate_user_attendance_stats(user_id: str) -> dict:
 # Late Permission Slip Operations
 # ==============================================================================
 
-def record_late_punch_in(user_id: str, in_time: str) -> dict:
+def record_late_punch_in(user_id: str, in_time: str) -> Optional[dict]:
     """Sets user status to 'blocked_late' and creates a late permission slip."""
     conn = get_db_connection()
     cursor = conn.cursor()
