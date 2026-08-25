@@ -137,18 +137,18 @@
       </div>
     </div>
 
-    <!-- My Passkeys Card -->
-    <div class="card" id="myPasskeysCard" style="margin-bottom: 20px;">
+    <!-- My Passkeys Card (Only shown if user has no enrolled passkey yet) -->
+    <div class="card" id="myPasskeysCard" style="margin-bottom: 20px; display: none;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 10px;">
-        <div class="card-title" style="margin-bottom: 0;">🔐 My Passkeys</div>
-        <button id="btnRegisterPasskey" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 6px 14px;">
-          ➕ Register New Passkey
+        <div class="card-title" style="margin-bottom: 0;">🔐 Register Biometric Passkey</div>
+        <button id="btnRegisterPasskey" class="btn btn-primary" style="width: auto; font-size: 0.85rem; padding: 8px 16px;">
+          ➕ Enroll Device Passkey
         </button>
       </div>
-      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">
-        Manage the devices authorized for biometric authentication.
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0;">
+        You do not have an active biometric passkey registered. Please register this device once to enable attendance verification.
       </p>
-      <div class="table-responsive">
+      <div class="table-responsive" id="myPasskeysTableWrap" style="display: none; margin-top: 14px;">
         <table class="data-table">
           <thead>
             <tr>
@@ -158,11 +158,6 @@
             </tr>
           </thead>
           <tbody id="myPasskeysTbody">
-            <tr>
-              <td colspan="3" style="text-align: center; color: var(--text-dim); padding: 12px;">
-                Loading passkeys...
-              </td>
-            </tr>
           </tbody>
         </table>
       </div>
@@ -300,40 +295,30 @@
 
     async function loadMyPasskeys() {
       try {
+        const passkeysCard = document.getElementById('myPasskeysCard');
         const res = await API.getUserCredentials();
-        const tbody = document.getElementById('myPasskeysTbody');
         if (res.success && res.credentials) {
-          if (res.credentials.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" style="text-align: center; color: var(--text-dim); padding: 12px;">No passkeys registered.</td></tr>';
+          if (res.credentials.length > 0) {
+            // Once passkey is registered for this account, hide the card so users cannot view/alter it
+            if (passkeysCard) passkeysCard.style.display = 'none';
+            const passkeyStat = document.getElementById('statPasskeyStatus');
+            if (passkeyStat) {
+              passkeyStat.textContent = 'Enrolled & Active ✓';
+              passkeyStat.style.color = 'var(--success)';
+            }
             return;
           }
-          tbody.innerHTML = res.credentials.map(c => `
-            <tr>
-              <td><strong>${escapeHtml(c.credential_name || 'Passkey')}</strong></td>
-              <td>${c.created_at || '--'}</td>
-              <td>
-                <button onclick="deleteMyPasskey('${escapeAttr(c.credential_id)}')" class="btn btn-danger" style="width:auto; padding:4px 8px; font-size:0.75rem;">🗑️ Delete</button>
-              </td>
-            </tr>
-          `).join('');
+
+          // If no passkey registered yet, prompt user to enroll their device
+          if (passkeysCard) passkeysCard.style.display = 'block';
+          const passkeyStat = document.getElementById('statPasskeyStatus');
+          if (passkeyStat) {
+            passkeyStat.textContent = 'Action Required (Enroll Passkey)';
+            passkeyStat.style.color = 'var(--warning)';
+          }
         }
       } catch (e) {
         console.error('Error fetching passkeys:', e);
-      }
-    }
-
-    async function deleteMyPasskey(credential_id) {
-      if (!confirm('Are you sure you want to delete this passkey?')) return;
-      try {
-        const res = await API.deleteUserCredential(credential_id);
-        if (res.success) {
-          App.showAlert('Passkey deleted.', 'success');
-          loadMyPasskeys();
-        } else {
-          App.showAlert(res.message, 'danger');
-        }
-      } catch (e) {
-        App.showAlert(e.message, 'danger');
       }
     }
 
