@@ -1,0 +1,10 @@
+{
+  "name": "biometric-attendance",
+  "version": "1.0.0",
+  "description": "Geo-Fenced Biometric Web Application",
+  "scripts": {
+    "dev": "venv\\Scripts\\python.exe -m backend.app",
+    "start": "venv\\Scripts\\python.exe -m backend.app",
+    "test": "venv\\Scripts\\pytest tests/"
+  }
+}
