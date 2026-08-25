@@ -488,11 +488,12 @@ def test_otp_send_and_verify_flow(client):
     fail_otp = client.post('/api/send-otp', json={'user_id': 'otp_test_user', 'phone': '+1000000000'})
     assert fail_otp.status_code == 400
 
-    # Request OTP with correct phone should succeed
-    send_resp = client.post('/api/send-otp', json={'user_id': 'otp_test_user', 'phone': '+1999111222'})
+    # Request OTP with correct phone / email should succeed
+    send_resp = client.post('/api/send-otp', json={'user_id': 'otp_user@example.com'})
     assert send_resp.status_code == 200
     assert send_resp.json['success'] is True
-    otp_code = send_resp.json['demo_otp']
+    from backend.models.schemas import _OTP_STORE
+    otp_code = _OTP_STORE['otp_test_user']['otp']
     assert len(otp_code) == 6
 
     # Verify with wrong OTP should fail

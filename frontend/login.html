@@ -69,26 +69,26 @@
 
     <!-- Reset Password with OTP Card (Shown when Forgot Password is clicked) -->
     <div class="card" id="forgotPasswordCard" style="display: none; border-color: rgba(59, 130, 246, 0.4); margin-top: 16px;">
-      <h2 class="card-title">🔑 Forgot Password — Verify OTP</h2>
+      <h2 class="card-title">🔑 Forgot Password — Phone OTP Verification</h2>
       <p style="color: var(--text-muted); font-size: 0.88rem; margin-bottom: 18px;">
-        Step 1: Enter your User ID / Email and registered phone number to receive a 6-digit OTP code.
+        Enter your registered Email ID. A 6-digit OTP will be dispatched to the registered mobile number linked with your account.
       </p>
 
       <!-- Step 1 Form: Request OTP -->
       <form id="requestOtpForm">
         <div class="form-group">
-          <label class="form-label" for="reset_user_id">User ID or Email</label>
-          <input type="text" id="reset_user_id" class="form-input" placeholder="e.g. user ID" required>
+          <label class="form-label" for="reset_user_id">Registered Email ID or User ID</label>
+          <input type="text" id="reset_user_id" class="form-input" placeholder="e.g. user@organization.edu or User ID" required>
         </div>
 
         <div class="form-group">
-          <label class="form-label" for="reset_phone">Registered Phone Number</label>
-          <input type="tel" id="reset_phone" class="form-input" placeholder="+1234567890" required>
+          <label class="form-label" for="reset_phone">Registered Phone Number <span style="color: var(--text-dim); font-size: 0.8rem;">(Optional)</span></label>
+          <input type="tel" id="reset_phone" class="form-input" placeholder="Leave blank to use linked phone, or enter to verify">
         </div>
 
         <div style="display: flex; gap: 10px; margin-top: 14px;">
           <button type="submit" id="btnSendOtp" class="btn btn-primary" style="flex: 1;">
-            📲 Send 6-Digit OTP
+            📲 Send 6-Digit OTP to Registered Phone
           </button>
           <button type="button" id="btnCancelReset" class="btn btn-secondary" style="width: auto;">
             Cancel
@@ -250,23 +250,23 @@
       const user_id = document.getElementById('reset_user_id').value.trim();
       const phone = document.getElementById('reset_phone').value.trim();
 
-      if (!user_id || !phone) {
-        App.showAlert('Please enter User ID / Email and Phone Number.', 'danger');
+      if (!user_id) {
+        App.showAlert('Please enter your Registered Email ID or User ID.', 'danger');
         return;
       }
 
       try {
-        App.showAlert('Sending 6-digit OTP code to registered phone...', 'info');
-        const res = await API.sendOtp({ user_id, phone });
+        App.showAlert('Sending 6-digit OTP code to registered phone linked with email...', 'info');
+        const res = await API.sendOtp({ user_id, phone: phone || undefined });
         if (res.success) {
           currentResetUserId = res.user_id;
           App.showAlert(res.message, 'success');
           document.getElementById('otpBannerMsg').textContent = res.message;
-          if (res.demo_otp) {
-            document.getElementById('reset_otp_code').value = res.demo_otp;
-          }
+          const otpInput = document.getElementById('reset_otp_code');
+          otpInput.value = '';
           verifyOtpForm.style.display = 'block';
           verifyOtpForm.scrollIntoView({ behavior: 'smooth' });
+          setTimeout(() => otpInput.focus(), 300);
         }
       } catch (err) {
         App.showAlert(err.message, 'danger');

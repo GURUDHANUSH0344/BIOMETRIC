@@ -197,20 +197,21 @@ def reset_password_route():
 
 @auth_bp.route('/send-otp', methods=['POST'])
 def send_otp_route():
-    """Generates and sends a 6-digit OTP code to the registered phone number."""
+    """Generates and sends a 6-digit OTP code to the registered phone number linked with the email."""
     data = request.get_json() or {}
     user_id = data.get('user_id', '').strip()
     phone = data.get('phone', '').strip()
 
-    if not user_id or not phone:
-        return jsonify({'success': False, 'message': 'User ID / Email and phone number are required.'}), 400
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Registered Email ID or User ID is required.'}), 400
 
     try:
-        otp_info = generate_and_store_otp(user_id, phone)
+        otp_info = generate_and_store_otp(user_id, phone=phone if phone else None)
         return jsonify({
             'success': True,
             'user_id': otp_info['user_id'],
-            'demo_otp': otp_info['demo_otp'],
+            'email': otp_info.get('email', ''),
+            'masked_phone': otp_info['masked_phone'],
             'message': otp_info['message']
         })
     except ValueError as e:

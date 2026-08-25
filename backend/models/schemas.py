@@ -442,28 +442,63 @@ def verify_and_update_user_password(user_id: str, current_password: str, new_pas
 # OTP Password Reset Management
 # ==============================================================================
 
-def generate_and_store_otp(user_id_or_email: str, phone: str) -> dict:
-    """Verifies phone and generates a 6-digit OTP code valid for 10 minutes."""
-    user = verify_user_phone(user_id_or_email, phone)
+def generate_and_store_otp(user_id_or_email: str, phone: str = None) -> dict:
+    """Finds user by registered email ID or User ID, fetches the linked registered phone number, and sends a 6-digit OTP."""
+    from backend.services.sms_service import send_sms_otp
+
+    clean_id = str(user_id_or_email).strip()
+    if not clean_id:
+        raise ValueError("Registered Email ID or User ID is required.")
+
+    user = get_user_by_email(clean_id)
+    if not user:
+        user = get_user_by_id(clean_id)
+    if not user:
+        user = get_user_by_id_or_email(clean_id)
+
+    if not user:
+        raise ValueError(f"No registered account found with Email ID or User ID '{clean_id}'.")
+
+    user_phone = str(user.get('phone', '') or '').strip()
+    if not user_phone:
+        raise ValueError("No mobile number is linked with this registered email. Please contact administrator.")
+
+    # If user provided a phone number to verify, ensure it matches the linked phone
+    if phone and str(phone).strip():
+        digits_input = ''.join(filter(str.isdigit, str(phone).strip()))
+        digits_user = ''.join(filter(str.isdigit, user_phone))
+        if digits_input and digits_input not in digits_user and digits_user not in digits_input:
+            raise ValueError("Provided phone number does not match the registered phone number linked with this email.")
+
     u_id = user['user_id']
 
-    # Generate 6-digit OTP
+    # Generate secure 6-digit OTP
     otp_code = f"{random.randint(100000, 999999)}"
     expires_at = time_module.time() + 600 # 10 minutes
 
     _OTP_STORE[u_id] = {
         'otp': otp_code,
         'expires_at': expires_at,
-        'phone': phone,
+        'phone': user_phone,
         'attempts': 0
     }
 
+    # Dispatch SMS to the registered phone number linked with the email ID
+    send_sms_otp(
+        phone_number=user_phone,
+        otp_code=otp_code,
+        user_name=user.get('full_name', 'User'),
+        email=user.get('email', '')
+    )
+
+    masked_phone = user_phone[-4:].rjust(len(user_phone), '*') if len(user_phone) >= 4 else user_phone
     return {
         'user_id': u_id,
         'full_name': user['full_name'],
-        'phone': user['phone'],
-        'demo_otp': otp_code,
-        'message': f"OTP sent to {user['phone'][-4:].rjust(len(user['phone']), '*')}."
+        'email': user['email'],
+        'phone': user_phone,
+        'masked_phone': masked_phone,
+        'message': f"OTP sent to registered phone ({masked_phone}) linked with {user['email']}."
     }
 
 def verify_otp_and_reset_password(user_id_or_email: str, otp: str, new_password: str) -> dict:
