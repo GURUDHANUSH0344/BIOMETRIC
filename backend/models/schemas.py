@@ -1,6 +1,7 @@
 import sqlite3
 import random
 import time as time_module
+from typing import Optional, Union, List, Dict, Any
 from datetime import datetime, time, timezone, timedelta
 from backend.database import get_db_connection
 from backend.utils.serializers import row_to_dict, rows_to_list
@@ -568,7 +569,7 @@ def get_user_punch_info_today(user_id: str) -> dict:
         'punch_count': len(rows)
     }
 
-def calculate_periods_status(punch_in: str, punch_out: str) -> list:
+def calculate_periods_status(punch_in: Optional[str] = None, punch_out: Optional[str] = None) -> list:
     """
     Calculates attendance status for Periods 1 through 7:
     - 1st Punch (Punch IN): Grants Present status for the first four periods (P1, P2, P3, P4).

@@ -11,7 +11,7 @@ def send_sms_otp(phone_number: str, otp_code: str, user_name: str = "User", emai
     Sends a 6-digit OTP to the registered phone number linked with the user's registered email.
     Supports Fast2SMS, Twilio, Generic SMS Webhooks, and Console Log fallback.
     """
-    clean_phone = "".join(filter(lambda c: c.isdigit() or c == '+', str(phone_number).strip()))
+    clean_phone = "".join(filter(lambda c: c.isdigit() or c == '+', (phone_number or '').strip()))
     message_text = f"Your FXEC Biometric verification OTP is {otp_code}. Valid for 10 minutes. Do not share with anyone."
 
     # 1. Fast2SMS (Common for Indian +91 numbers)
