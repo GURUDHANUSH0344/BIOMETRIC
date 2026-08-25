@@ -167,7 +167,7 @@
     <div class="card" style="margin-bottom: 20px;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <div class="card-title" style="margin-bottom: 0;">👤 My Profile & Security</div>
-        <button id="btnEditProfile" onclick="openProfileModal()" class="btn btn-secondary" style="width: auto; font-size: 0.82rem; padding: 6px 12px;">
+        <button id="btnEditProfile" onclick="openProfileModal()" class="btn btn-secondary" style="display: none; width: auto; font-size: 0.82rem; padding: 6px 12px;">
           ✏️ Edit Profile
         </button>
       </div>
@@ -456,6 +456,11 @@
         document.getElementById('profUserId').textContent = activeUser.user_id;
         document.getElementById('profEmail').textContent = activeUser.email;
         document.getElementById('profPhone').textContent = activeUser.phone || '--';
+        // Only show Edit Profile button if the logged-in user is an administrator
+        if (activeUser.role === 'admin') {
+          const btnEditProfile = document.getElementById('btnEditProfile');
+          if (btnEditProfile) btnEditProfile.style.display = 'inline-block';
+        }
 
         const passkeyStat = document.getElementById('statPasskeyStatus');
         if (passkeyStat) {

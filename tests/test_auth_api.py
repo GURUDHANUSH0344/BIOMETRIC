@@ -323,21 +323,26 @@ def test_user_self_profile_editing(client):
     login_resp = client.post('/api/login', json={'user_id': 'student06', 'password': 'Password@123'})
     assert login_resp.status_code == 200
 
-    # User updates own profile details (Name, Email, Phone) via PUT /api/me
+    # User attempting to update own profile details via PUT /api/me should be blocked (403)
     update_resp = client.put('/api/me', json={
         'full_name': 'Student Six Updated Self',
         'email': 'student06_self@college.edu',
         'phone': '+1999888777'
     })
-    assert update_resp.status_code == 200
-    assert update_resp.json['success'] is True
-    assert update_resp.json['user']['full_name'] == 'Student Six Updated Self'
+    assert update_resp.status_code == 403
+    assert update_resp.json['success'] is False
+    assert 'Only administrators are authorized' in update_resp.json['message']
 
-    # Verify updated profile via GET /api/me
-    me_resp = client.get('/api/me')
-    assert me_resp.status_code == 200
-    assert me_resp.json['user']['full_name'] == 'Student Six Updated Self'
-    assert me_resp.json['user']['email'] == 'student06_self@college.edu'
+    # Admin updates student06 profile via admin endpoint
+    client.post('/api/logout')
+    client.post('/api/login', json={'user_id': 'admin', 'password': 'Admin@123456'})
+    admin_update_resp = client.put('/api/admin/users/student06', json={
+        'full_name': 'Student Six Admin Updated',
+        'email': 'student06_admin@college.edu',
+        'phone': '+1999888777'
+    })
+    assert admin_update_resp.status_code == 200
+    assert admin_update_resp.json['success'] is True
 
     # Cleanup
     delete_user('student06')

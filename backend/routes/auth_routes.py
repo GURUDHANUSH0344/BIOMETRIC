@@ -130,6 +130,9 @@ def user_me():
         })
 
     elif request.method == 'PUT':
+        if session.get('role') != 'admin':
+            return jsonify({'success': False, 'message': 'Only administrators are authorized to edit user profiles.'}), 403
+
         data = request.get_json() or {}
         full_name = data.get('full_name')
         email = data.get('email')
